@@ -97,6 +97,201 @@ function shoulders(up, wide) {
 }
 
 const isHeld = (o) => { let p = o; while (p) { if (p === held) return true; p = p.parent; } return false; };
+// THE EFFECT OF A SWING ("trail" in an action): what the held thing leaves in the air - a sprite of its own that the game lays over the
+// body at the same frame number, so nothing is drawn again for it and it can be left out. Three parts, each reusable for any character:
+//   the PATH    the rig knows where the held thing's far end is at every moment: it is read 200 times through the action
+//   the BAND    a ribbon along the last stretch of that path (plain, wind, water, fire - or none)
+//   the PIECES  small pictures (drops, flames, leaves ...: a strip of cells in skills/spritecast/effects/, or the user's own) let go
+//               along the path where it is fast. Each is born once and then flies on - carried a little by the swing, flung outward,
+//               falling or rising, turning - so a drop in one frame is the same drop, further on, in the next.
+// Figure heights and seconds throughout. charpipe.py reads the style (effects.json) and hands it here with the pictures as data URLs.
+const HIDE = new THREE.MeshBasicMaterial({ colorWrite: false });      // drawn into the depth only: it hides the effect behind it
+let FX = null; const fxTex = {};
+window.setTrail = async (cfg) => {
+  FX = cfg || null; if (!FX) return false;
+  for (const p of FX.pieces || []) {
+    if (p.blob) continue;
+    const key = p.image + ':' + p.cells; p.key = key; if (fxTex[key]) continue;
+    const t = await new THREE.TextureLoader().loadAsync(p.data); t.colorSpace = THREE.SRGBColorSpace;
+    if (FX.pixel) { t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; }
+    fxTex[key] = Array.from({ length: p.cells }, (_, i) => { const c = t.clone(); c.repeat.set(1 / p.cells, 1); c.offset.set(i / p.cells, 0); c.needsUpdate = true; return c; });
+  }
+  return true;
+};
+const lcg = (seed) => { let x = seed >>> 0; return () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; }; };
+const pick = (v, r) => Array.isArray(v) ? v[0] + (v[1] - v[0]) * r() : v;
+function fxPath(pose, t0, t1, o) {
+  let thing = null; held.traverse((x) => { if (!thing && x.userData.reach) thing = x; });
+  if (!thing) {          // a thing with no far end written down (a gun, the user's own model): the corner of its box furthest from the grip
+    thing = held.children[0] || held; thing.updateWorldMatrix(true, true);
+    const inv = thing.matrixWorld.clone().invert(), box = new THREE.Box3(), v = new THREE.Vector3(); let far = null, dMax = 0;
+    thing.traverse((m) => { if (m.isMesh) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld).applyMatrix4(inv)); } });
+    if (box.isEmpty()) return null;
+    for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) { const d = v.set(x, y, z).length(); if (d > dMax) { dMax = d; far = v.clone(); } }
+    const c = box.getCenter(new THREE.Vector3()), axis = far.clone().sub(c); axis.set(Math.abs(axis.x) >= Math.abs(axis.y) && Math.abs(axis.x) >= Math.abs(axis.z) ? axis.x : 0, Math.abs(axis.y) > Math.abs(axis.x) && Math.abs(axis.y) >= Math.abs(axis.z) ? axis.y : 0, Math.abs(axis.z) > Math.abs(axis.x) && Math.abs(axis.z) > Math.abs(axis.y) ? axis.z : 0);
+    thing.userData.reach = { tip: c.clone().add(axis).toArray(), base: [0, 0, 0] };      // along its longest side, from the grip to its far end
+  }
+  const L = thing.userData.reach, K = 200, T = [], tip = [], low = [], a = new THREE.Vector3(...L.tip), b = a.clone().lerp(new THREE.Vector3(...L.base), o.width || 0.6);
+  for (let k = 0; k <= K; k++) { const tt = t0 + (t1 - t0) * k / K; pose(tt); thing.updateWorldMatrix(true, false); T.push(tt); tip.push(thing.localToWorld(a.clone())); low.push(thing.localToWorld(b.clone())); }
+  // the STROKE: the longest run in which the far end goes at over half its top speed - the swing itself, not the wind-up
+  const sp = [0]; for (let k = 1; k <= K; k++) sp.push(tip[k].distanceTo(tip[k - 1])); const top = Math.max(...sp);
+  let best = [0, 0], run = null, len = 0, bestLen = 0;
+  for (let k = 1; k <= K + 1; k++) {
+    if (k <= K && sp[k] > top * 0.5) { if (run === null) { run = k - 1; len = 0; } len += sp[k]; }
+    else if (run !== null) { if (len > bestLen) { bestLen = len; best = [run, k - 1]; } run = null; }
+  }
+  return { T, tip, low, dt: (t1 - t0) / K, blade: tip[0].distanceTo(low[0]) / (o.width || 0.6), stroke: best };
+}
+function fxPieces(path, o) {          // every piece of the whole action, born where the far end is fast
+  const out = [];
+  (o.pieces || []).forEach((P, li) => {
+    const r = lcg(7919 * (li + 1)); let owed = 0;
+    for (let k = 1; k < path.T.length; k++) {
+      const seg = path.tip[k].clone().sub(path.tip[k - 1]), segLow = path.low[k].clone().sub(path.low[k - 1]), d = seg.length(), speed = d / path.dt;
+      if (speed < (P.min_speed ?? 1.2)) continue;
+      if ((o.when ?? 'stroke') === 'stroke' && (k - 1 < path.stroke[0] || k > path.stroke[1])) continue;      // only the swing itself lets pieces go, not the wind-up
+      owed += d * (P.rate ?? 40);
+      while (owed >= 1) {
+        owed -= 1;
+        const f = r(), sh = r() * (P.spread ?? 0.5), at = path.tip[k - 1].clone().lerp(path.tip[k], f).lerp(path.low[k], sh);
+        const own = seg.clone().lerp(segLow, sh).divideScalar(path.dt), outw = path.tip[k].clone().sub(path.low[k]).normalize();   // how fast THAT point of the held thing moves: the far end fastest
+        const rand = new THREE.Vector3(r() - 0.5, r() - 0.5, r() - 0.5).normalize();
+        const v = own.multiplyScalar(pick(P.carry ?? [0.1, 0.3], r)).add(outw.multiplyScalar(pick(P.out ?? 0, r))).add(rand.multiplyScalar(pick(P.jitter ?? 0.2, r)));
+        v.y += pick(P.rise ?? 0, r);
+        out.push({ P, born: path.T[k - 1] + f * path.dt + pick(P.delay ?? 0, r), at, v, life: pick(P.life ?? [0.3, 0.6], r), size: pick(P.size ?? [0.03, 0.05], r), cell: P.blob ? 0 : Math.floor(r() * P.cells),
+                   rot: r() * Math.PI * 2, spin: (r() - 0.5) * 2 * (P.spin ?? 0), phase: r() * 6.283, tilt: (r() - 0.5) * (P.tilt ?? 0) });
+      }
+    }
+  });
+  return out;
+}
+function fxBand(path, t, dtFrame, o, grp) {
+  const style = o.band || 'plain'; if (style === 'none') return;
+  if ((o.when ?? 'stroke') === 'stroke' && (t < path.T[path.stroke[0]] || t > path.T[path.stroke[1]] + (o.span || 1.5) * dtFrame)) return;      // the band too: the swing only
+  let k1 = path.T.findIndex((x) => x > t + 1e-6); k1 = (k1 < 0 ? path.T.length : k1) - 1;
+  const k0 = Math.max((o.when ?? 'stroke') === 'stroke' ? path.stroke[0] : 0, k1 - Math.round((o.span || 1.5) * dtFrame / path.dt));
+  let tip = path.tip.slice(k0, k1 + 1), low = path.low.slice(k0, k1 + 1); if (tip.length < 5) return;
+  // ONE stroke only: going back from now, the band ends where the far end was nearly still or turned round (the top of the wind-up,
+  // before the swing) - kept, that older bit folded into a hook at the band's tail and read as a second umbrella tip in the air
+  const seg = []; for (let j = 1; j < tip.length; j++) seg.push(tip[j].clone().sub(tip[j - 1]));
+  const fast = Math.max(...seg.map((v) => v.length())); let cut = 0;
+  for (let j = seg.length - 1; j >= 1; j--) {
+    const v = seg[j - 1], w = seg[j];
+    if (v.length() < fast * 0.3 || v.clone().normalize().dot(w.clone().normalize()) < 0.6) { cut = j; break; }
+  }
+  if (cut) { tip = tip.slice(cut); low = low.slice(cut); }
+  const N = tip.length - 1; if (N < 3) return;
+  let len = 0; for (let j = 1; j <= N; j++) len += tip[j].distanceTo(tip[j - 1]);
+  if (len < (o.min || 0.25)) return;
+  const peak = o.alpha || 0.85, r = lcg(Math.round(t * 1000) * 2654435761);
+  const C = (h) => new THREE.Color(h), mix = (x, y, f) => x.clone().lerp(y, Math.min(1, Math.max(0, f)));
+  const out_ = (j) => tip[j].clone().sub(low[j]).normalize(), blade = path.blade;
+  // a band between two rows of points; colour(f, edge) → [Color, alpha] for the outer (0) and the inner (1) edge, f: 0 oldest .. 1 newest
+  const band = (outer, inner, colour) => {
+    const pos = [], col = [], idx = [];
+    for (let j = 0; j <= N; j++) {
+      const f = j / N, [c0, a0] = colour(f, 0), [c1, a1] = colour(f, 1);
+      pos.push(outer[j].x, outer[j].y, outer[j].z, inner[j].x, inner[j].y, inner[j].z); col.push(c0.r, c0.g, c0.b, a0, c1.r, c1.g, c1.b, a1);
+      if (j) { const k = 2 * j; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4)); g.setIndex(idx);
+    const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, side: THREE.DoubleSide, depthWrite: false, toneMapped: false })); m.frustumCulled = false; grp.add(m);
+  };
+  const along = (s) => tip.map((p, j) => p.clone().lerp(low[j], s));          // a row of points a share `s` of the way from the far end down the band
+  if (style === 'wind') {
+    for (const s0 of [0.02, 0.3, 0.58, 0.86]) {
+      const w = 0.035 + r() * 0.03, cut0 = r() * 0.3, c = mix(C(o.color || '#ffffff'), C(o.color2 || '#cfeeff'), r());
+      const outer = along(s0), inner = along(s0 + w).map((p, j) => outer[j].clone().lerp(p, Math.pow(Math.sin(Math.PI * Math.min(1, (j / N) * 1.15)), 0.6)));
+      band(outer, inner, (f) => [c, f < cut0 ? 0 : peak * Math.pow((f - cut0) / (1 - cut0), 1.2)]);
+    }
+  } else if (style === 'water') {
+    const deep = C('#1f6fd0'), mid = C('#49a6ee'), rim = C('#d6f3ff');
+    band(tip, tip.map((p, j) => p.clone().lerp(low[j], Math.pow(j / N, 1.6))), (f, e) => [e ? deep : mid, (e ? 0.55 : 0.85) * peak * Math.pow(f, 1.1)]);
+    band(along(-0.015), along(0.06).map((p, j) => tip[j].clone().lerp(p, j / N)), (f, e) => [rim, (e ? 0.2 : 0.95) * Math.pow(f, 0.9)]);     // the bright rim
+  } else if (style === 'fire') {
+    const red = C('#ff3b12'), org = C('#ff9a1a'), yel = C('#ffe45c'), hot = C('#fffbe6');     // (bright and nearly solid: a thin dark red over a floor reads as brown)
+    const lick = tip.map((p, j) => p.clone().add(out_(j).multiplyScalar(blade * (0.02 + 0.07 * r()) * (0.4 + 0.6 * (1 - j / N)))));
+    band(lick, tip.map((p, j) => p.clone().lerp(low[j], Math.pow(j / N, 1.3))), (f, e) => [mix(red, org, f * 1.3 - (e ? 0 : 0.25)), Math.min(1, (e ? 0.9 : 0.7) * Math.pow(f, 0.9))]);
+    band(along(0.04), along(0.55).map((p, j) => along(0.04)[j].clone().lerp(p, Math.pow(j / N, 2))), (f, e) => [mix(org, e ? hot : yel, f * 1.4), Math.min(1, (e ? 1.1 : 1) * Math.pow(f, 1.2))]);   // the hot core, nearest the blade
+  } else {
+    const c = C(o.color || '#ffffff');
+    band(tip, tip.map((p, j) => p.clone().lerp(low[j], Math.pow(j / N, 2))), (f, e) => [c, peak * Math.pow(f, 1.4) * (e ? 0.35 : 1)]);     // brightest along the far edge
+  }
+}
+function fxDraw(path, parts, t, dtFrame, o) {          // the effect at time t → a Group, or null when there is nothing of it then
+  const grp = new THREE.Group(), mass = new THREE.Group(); fxBand(path, t, dtFrame, o, grp);
+  const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0), upv = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+  for (const q of parts) {
+    const a = t - q.born; if (a < 0 || a > q.life) continue;
+    const P = q.P, dr = P.drag ?? 0, g = P.gravity ?? 0, e = dr > 0 ? (1 - Math.exp(-dr * a)) / dr : a;
+    const p = q.at.clone().addScaledVector(q.v, e); p.y += 0.5 * g * a * a;
+    if (P.sway) p.addScaledVector(right, P.sway * Math.sin((P.sway_hz ?? 2) * 6.283 * a + q.phase));
+    if (p.y < 0) { if ((P.ground ?? 'die') === 'die') continue; p.y = 0.002; }
+    const u = a / q.life, alpha = Math.min(1, u / 0.08) * Math.min(1, (1 - u) / (P.fade ?? 0.35));
+    const size = q.size * (P.shrink ? Math.pow(1 - u, P.shrink) : 1) * (P.grow ? 1 + P.grow * u : 1);
+    let rot = q.rot + q.spin * a;
+    if (P.swirl) {          // a flow that turns with place and time, so neighbours go together: a body of flame parts into tongues as it rises
+      const w = P.swirl * u, kx = 17, ky = 13;
+      p.addScaledVector(right, w * Math.sin(ky * p.y + 5.1 * t + 1.3)).addScaledVector(upv, 0.5 * w * Math.sin(kx * p.dot(right) + 4.3 * t + 0.4));
+    }
+    if (P.blob) {           // a soft round weight added into the field: red its amount, green its amount times its heat (1 just born .. 0 at its end)
+      const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: blobTex(), color: new THREE.Color().setRGB(1, 1 - u, 0, THREE.LinearSRGBColorSpace), opacity: alpha * (P.alpha ?? 1), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+      m.position.copy(p); m.scale.set(size, size, 1); m.frustumCulled = false; mass.add(m); continue;
+    }
+    if (P.turn === 'path') { const vel = q.v.clone().multiplyScalar(dr > 0 ? Math.exp(-dr * a) : 1); vel.y += g * a; rot = Math.atan2(vel.dot(upv), vel.dot(right)) - Math.PI / 2; }
+    else if (P.turn === 'up') rot = q.tilt;
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: fxTex[P.key][q.cell], transparent: true, opacity: alpha * (P.alpha ?? 1), rotation: rot, depthWrite: false, toneMapped: false }));
+    m.position.copy(p); m.scale.set(size, size, 1); m.frustumCulled = false; grp.add(m);
+  }
+  if (mass.children.length) grp.userData.mass = mass;
+  return grp.children.length || mass.children.length ? grp : null;
+}
+// A BODY OF WATER OR FLAME ("mass" in a style), not loose pieces. Water flung off a swing is a sheet that stretches into strings and then
+// breaks into drops; flame is one hot body that lags behind, rises and cools. Both come from the same pieces, drawn another way: each
+// is a soft round weight ADDED into a field, and only where the field passes a level is anything shown - so pieces close together are
+// one body, a thin neck forms as they part, and it breaks. Water: darker where deep, a light rim, a highlight from the field's slope.
+// Flame: the colour is the heat (white-yellow where much and new, through orange to red where little and old).
+let _blob = null, _rt = null, _quad = null;
+function blobTex() {
+  if (_blob) return _blob;
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), im = g.createImageData(64, 64);
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const r2 = ((x - 31.5) ** 2 + (y - 31.5) ** 2) / (31.5 ** 2), i = 4 * (y * 64 + x); im.data[i] = im.data[i + 1] = im.data[i + 2] = 255; im.data[i + 3] = r2 >= 1 ? 0 : Math.round(255 * Math.exp(-4 * r2) * (1 - r2)); }
+  g.putImageData(im, 0, 0); _blob = new THREE.CanvasTexture(c); _blob.colorSpace = THREE.NoColorSpace; return _blob;
+}
+const MASS_FRAG = `
+uniform sampler2D field; uniform int kind; uniform vec2 px; varying vec2 vUv;
+float F(vec2 o) { return texture2D(field, vUv + o * px).r; }
+void main() {
+  vec4 f = texture2D(field, vUv); float d = f.r;
+  if (kind == 0) {                                   // water
+    float a = smoothstep(0.50, 0.60, d); if (a <= 0.0) discard;
+    vec2 g = vec2(F(vec2(3., 0.)) - F(vec2(-3., 0.)), F(vec2(0., 3.)) - F(vec2(0., -3.)));
+    vec3 n = normalize(vec3(-g * 3.0, 1.0));
+    vec3 col = mix(vec3(0.29, 0.65, 0.93), vec3(0.12, 0.43, 0.82), smoothstep(0.7, 1.9, d));     // deeper, darker
+    col = mix(col, vec3(0.84, 0.95, 1.0), (1.0 - smoothstep(0.60, 0.85, d)) * 0.9);               // the light rim
+    float spec = max(dot(n, normalize(vec3(-0.45, 0.55, 0.7))), 0.0);
+    col = mix(col, vec3(1.0), step(0.93, spec) * step(0.75, d) * 0.95);                           // a hard highlight where the body faces the light
+    gl_FragColor = vec4(col, a * 0.92);
+  } else {                                           // flame
+    float heat = f.g / max(f.r, 1e-4), v = heat * smoothstep(0.45, 7.0, d);       // hot where there is much of it AND it is new: the core
+    float a = smoothstep(0.42, 0.50, d) * smoothstep(0.12, 0.5, heat); if (a <= 0.0) discard;      // (gone as it cools: left red and whole it read as paint)
+    vec3 col = v > 0.66 ? vec3(1.0, 0.97, 0.80) : v > 0.40 ? vec3(1.0, 0.86, 0.30) : v > 0.13 ? vec3(1.0, 0.56, 0.10) : mix(vec3(0.42, 0.10, 0.06), vec3(0.95, 0.24, 0.08), smoothstep(0.2, 0.6, heat));      // the rim darkens as it cools
+    gl_FragColor = vec4(col, a);
+  }
+}`;
+function massPass(mass, kind) {          // the field into a buffer (the body hiding it where it is in front), then the field's look onto the canvas
+  const sz = renderer.getDrawingBufferSize(new THREE.Vector2());
+  if (!_rt || _rt.width !== sz.x || _rt.height !== sz.y) { if (_rt) _rt.dispose(); _rt = new THREE.WebGLRenderTarget(sz.x, sz.y, { type: THREE.HalfFloatType, depthBuffer: true }); }
+  if (!_quad) {
+    const m = new THREE.ShaderMaterial({ uniforms: { field: { value: null }, kind: { value: 0 }, px: { value: new THREE.Vector2() } }, transparent: true, depthTest: false, depthWrite: false,
+      vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }', fragmentShader: MASS_FRAG });
+    _quad = { scene: new THREE.Scene(), cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), m }; const q = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), m); q.frustumCulled = false; _quad.scene.add(q);
+  }
+  scene.add(mass); renderer.setRenderTarget(_rt); renderer.clear(); renderer.render(scene, cam); renderer.setRenderTarget(null); scene.remove(mass);
+  mass.traverse((x) => { if (x.material) x.material.dispose(); });
+  _quad.m.uniforms.field.value = _rt.texture; _quad.m.uniforms.kind.value = kind === 'fire' ? 1 : 0; _quad.m.uniforms.px.value.set(1 / sz.x, 1 / sz.y);
+  renderer.render(_quad.scene, _quad.cam);
+}
 window.frames = (clipName, dir, n, t0, t1, head, up = 0, wide = 1, shadows = false) => {
   window.shadowShots = []; window.heldShots = []; window.bodyShots = [];
   root.rotation.y = FACING[dir] * Math.PI / 180;
@@ -104,14 +299,34 @@ window.frames = (clipName, dir, n, t0, t1, head, up = 0, wide = 1, shadows = fal
   const clip = clips.find((c) => c.name === clipName) || clips[0];
   const act = mixer.clipAction(clip); act.play();
   const out = []; let x0 = null, z0 = null;
-  for (let i = 0; i < n; i++) {
-    const t = t0 + (t1 - t0) * i / n;
+  window.trailShots = [];
+  const pose = (t) => {
     if (hips && x0 === null) { mixer.setTime(t0); x0 = hips.position.x; z0 = hips.position.z; }
     mixer.setTime(t);
     if (hips) { hips.position.x = x0; hips.position.z = z0; }      // the walk stays on the spot
     curlFingers();
     root.updateMatrixWorld(true); shoulders(up, wide); root.updateMatrixWorld(true); headUp(head); root.updateMatrixWorld(true);
+  };
+  const fx = held && FX ? fxPath(pose, t0, t1, FX) : null, parts = fx ? fxPieces(fx, FX) : [];
+  for (let i = 0; i < n; i++) {
+    const t = t0 + (t1 - t0) * i / n;
+    pose(t);
     renderer.render(scene, cam); out.push(renderer.domElement.toDataURL('image/png'));
+    if (held && FX) {      // the swing's effect alone, the body and the held thing cutting it where they are in front → window.trailShots
+      // "frames_x": m effect frames to each of the body's (the body is drawn 8 times, the effect costs nothing): shown at m times the
+      // pace over the same body frame, a sheet of water is seen tearing instead of being whole in one frame and drops in the next
+      const m = Math.max(1, FX.frames_x || 1), solid = []; root.traverse((o) => { if (o.isMesh) { solid.push([o, o.material]); o.material = HIDE; } });
+      for (let j = 0; j < m; j++) {
+        const ribbon = fx ? fxDraw(fx, parts, t + (t1 - t0) / n * j / m, (t1 - t0) / n, FX) : null;
+        if (!ribbon) { window.trailShots.push(null); continue; }
+        renderer.clear(); renderer.autoClear = false;
+        if (ribbon.userData.mass) massPass(ribbon.userData.mass, FX.mass);
+        scene.add(ribbon); renderer.render(scene, cam); scene.remove(ribbon); renderer.autoClear = true;
+        ribbon.traverse((x) => { if (x.isMesh) x.geometry.dispose(); if (x.material) x.material.dispose(); });
+        window.trailShots.push(renderer.domElement.toDataURL('image/png'));
+      }
+      solid.forEach(([o, mt]) => { o.material = mt; });
+    }
     if (held && window.wantHeld) {       // the held thing alone, and the body alone → window.heldShots / bodyShots (where the held thing should be drawn)
       const others = []; root.traverse((o) => { if (o.isMesh && !isHeld(o)) { others.push(o); o.visible = false; } });
       renderer.render(scene, cam); window.heldShots.push(renderer.domElement.toDataURL('image/png'));
@@ -158,6 +373,7 @@ const HOLDS = {
     const hook = new THREE.Mesh(new THREE.TorusGeometry(L * 0.05, L * 0.016, 10, 24, Math.PI), mat(dark)); hook.rotation.z = Math.PI; hook.position.set(L * 0.05, 0, 0); g.add(hook);
     const grip = new THREE.Mesh(new THREE.CylinderGeometry(L * 0.018, L * 0.018, L * 0.12, 12), mat(dark)); grip.position.y = L * 0.06; g.add(grip);
     g.userData.grip = { at: [0, L * 0.06, 0], r: L * 0.018 };       // where the handle's middle is, and its radius (figure units)
+    g.userData.reach = { tip: [0, L, 0], base: [0, L * 0.12, 0] };  // its far end and where the handle ends: what a swing's trail is drawn between
     return g;
   },
   pistol: (o) => {                                // a handgun: the slide and barrel along +y (the way the fingers point), the grip back from it along +x

@@ -513,6 +513,17 @@ def main():
         for n_, m_ in enumerate(ms_):
             a_ = np.zeros(m_[sy0:sy1, sx0:sx1].shape + (4,), np.uint8); a_[m_[sy0:sy1, sx0:sx1]] = SHADE; st_.paste(Image.fromarray(a_), (n_ * (sx1 - sx0), 0))
         st_.save(out / 'shadows' / f'{c}-{dr}.png'); shadows[f'{c}-{dr}'] = {'file': f'shadows/{c}-{dr}.png', 'frame': [int(sx1 - sx0), int(sy1 - sy0)], 'offset': [int(sx0 + 2 * CH_ - box[0]), int(sy0 + 2 * CH_ - box[1])]}
+    # A SWING'S EFFECT ("trail" in the action; render/<clip>-<facing>-<i>-t.png): the same sprite of its own as in the painted set, as
+    # pixel art - hard edges, a few colours - laid OVER the figure at the same frame number ("trails" in pixel.json: file, frame, offset)
+    trails = {}
+    for (c, dr), (fr, _) in strips.items():
+        nt_ = max([int(f_.name.split('-')[-2]) + 1 for f_ in (d / 'render').glob(f'{c}-{dr}-*-t.png')] or [0]); tx_ = max(1, -(-nt_ // len(fr)))   # ("frames_x": that many effect cells to each frame of the figure)
+        tf_ = [d / f'render/{c}-{dr}-{i}-t.png' for i in range(len(fr) * tx_)]
+        if not any(f_.exists() for f_ in tf_): continue
+        e_ = P.effect_strip([f_ if f_.exists() else None for f_ in tf_], hh)
+        if e_ is None: continue
+        (out / 'trails').mkdir(exist_ok=True); e_[0].save(out / 'trails' / f'{c}-{dr}.png')
+        trails[f'{c}-{dr}'] = {'file': f'trails/{c}-{dr}.png', 'frame': e_[1], 'offset': [int(e_[2][0] + 2 * CH_ - box[0]), int(e_[2][1] + 2 * CH_ - box[1])], 'frames': len(tf_), 'per_frame': tx_}
     releases = {}
     for (c, dr), (fr, _) in strips.items():
         hold = s['actions'].get(c, {}).get('hold')
@@ -621,7 +632,7 @@ def main():
         st_.save(out / f'{th_}-fly.png')
         print('  let go:', releases)
     (out / 'pixel.json').write_text(json.dumps({'asked_px': H, 'scale': K, 'figure_px': int(np.median([h.max() - h.min() + 1 for h in hs])), 'frame': [fw, fh], 'colours': ncol,
-                                                'animations': {f'{c}-{dr}': len(fr) for (c, dr), (fr, _) in strips.items()}, 'origin': [int(box[0]), int(box[1])], 'release': releases, 'shadows': shadows, 'shadow_colour': [40, 30, 24], 'shadow_alpha': 0.3}, indent=1))
+                                                'animations': {f'{c}-{dr}': len(fr) for (c, dr), (fr, _) in strips.items()}, 'origin': [int(box[0]), int(box[1])], 'release': releases, 'shadows': shadows, **({'trails': trails} if trails else {}), 'shadow_colour': [40, 30, 24], 'shadow_alpha': 0.3}, indent=1))
     # the review: which frames to look at, a picture of them beside their guides, the sheets a redraw would draw again
     bad = {k: v for k, v in REVIEW.items() if v and (k[0], k[1]) in strips}; rv = {}
     for (c, dr, i), v in sorted(bad.items()): rv.setdefault(f'{c}-{dr}', {})[str(i)] = v

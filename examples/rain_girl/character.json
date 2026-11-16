@@ -1045,9 +1045,9 @@
     [],
     [],
     [
-     "dark brown \u2192 nothing",
-     "silver-grey (bare metal) \u2192 nothing",
-     "yellow \u2192 nothing"
+     "dark brown → nothing",
+     "silver-grey (bare metal) → nothing",
+     "yellow → nothing"
     ],
     [],
     []
@@ -1087,13 +1087,13 @@
    "parts": [
     [],
     [
-     "silver-grey (bare metal) \u2192 yellow"
+     "silver-grey (bare metal) → yellow"
     ],
     [],
     [],
     [],
     [
-     "silver-grey (bare metal) \u2192 yellow"
+     "silver-grey (bare metal) → yellow"
     ],
     [],
     []
@@ -1133,7 +1133,7 @@
    "parts": [
     [],
     [
-     "dark brown \u2192 yellow"
+     "dark brown → yellow"
     ],
     [],
     [],
@@ -1180,7 +1180,7 @@
     [],
     [],
     [
-     "silver-grey (bare metal) \u2192 dark grey"
+     "silver-grey (bare metal) → dark grey"
     ],
     [],
     [],
@@ -1220,10 +1220,10 @@
    ],
    "parts": [
     [
-     "silver-grey (bare metal) \u2192 nothing"
+     "silver-grey (bare metal) → nothing"
     ],
     [
-     "silver-grey (bare metal) \u2192 dark brown"
+     "silver-grey (bare metal) → dark brown"
     ],
     [],
     [],
@@ -1269,8 +1269,8 @@
     [],
     [],
     [
-     "silver-grey (bare metal) \u2192 yellow",
-     "yellow \u2192 yellow"
+     "silver-grey (bare metal) → yellow",
+     "yellow → yellow"
     ],
     [],
     [],
@@ -2768,6 +2768,112 @@
       ]
      }
     ]
+   },
+   "trail": {
+    "south": {
+     "file": "slash-south-trail.png",
+     "frame": [
+      89,
+      386
+     ],
+     "offset": [
+      80,
+      30
+     ],
+     "frames": 16,
+     "per_frame": 2
+    },
+    "south-east": {
+     "file": "slash-south-east-trail.png",
+     "frame": [
+      254,
+      390
+     ],
+     "offset": [
+      132,
+      25
+     ],
+     "frames": 16,
+     "per_frame": 2
+    },
+    "east": {
+     "file": "slash-east-trail.png",
+     "frame": [
+      245,
+      313
+     ],
+     "offset": [
+      142,
+      4
+     ],
+     "frames": 16,
+     "per_frame": 2
+    },
+    "north-east": {
+     "file": "slash-north-east-trail.png",
+     "frame": [
+      238,
+      310
+     ],
+     "offset": [
+      149,
+      -57
+     ],
+     "frames": 16,
+     "per_frame": 2
+    },
+    "north": {
+     "file": "slash-north-trail.png",
+     "frame": [
+      104,
+      278
+     ],
+     "offset": [
+      126,
+      -57
+     ],
+     "frames": 16,
+     "per_frame": 2
+    },
+    "north-west": {
+     "file": "slash-north-west-trail.png",
+     "frame": [
+      255,
+      288
+     ],
+     "offset": [
+      -86,
+      -57
+     ],
+     "frames": 16,
+     "per_frame": 2
+    },
+    "west": {
+     "file": "slash-west-trail.png",
+     "frame": [
+      245,
+      283
+     ],
+     "offset": [
+      -86,
+      -7
+     ],
+     "frames": 16,
+     "per_frame": 2
+    },
+    "south-west": {
+     "file": "slash-south-west-trail.png",
+     "frame": [
+      235,
+      366
+     ],
+     "offset": [
+      -86,
+      17
+     ],
+     "frames": 16,
+     "per_frame": 2
+    }
    }
   }
  },

@@ -15,7 +15,8 @@
     "kind": "umbrella",
     "length": 0.75,
     "color": "#f2c21b"
-   }
+   },
+   "trail": "water"
   }
  ],
  "height_m": 1.3,

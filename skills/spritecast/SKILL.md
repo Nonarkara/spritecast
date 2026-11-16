@@ -114,6 +114,11 @@ hand (`umbrella`, `pistol`, `watergun`; `{"kind", "hand": "left"|"right", "lengt
 `"hold"` in the spec itself (not in one action) is carried all the time - walk, standing, every action - and then nothing is ever flipped
 (`"mirror": "never"`, also on its own for a character that is not the same on both sides). The hand closes on the handle by itself:
 **open `render/hand-<name>.png` and read the line `render` prints before any paid sheet** (reference/character.md, "the hand closes on it").
+**A swing's effect** (`"trail"` in an action that holds something: `"trail": "water"`): what the held thing leaves in the air - `plain`,
+`wind`, `water`, `drops`, `fire`, `flames`, `leaves`, `greenleaves`, `petals`, `snow`, `sparkle`. Free and no drawing: `render` reads the
+held thing's path off the rig and writes the effect as a sprite of its own (`out/<action>-<facing>-trail.png`, `"trail"` in
+`character.json`), laid over the body; an action already drawn gets one with `render --only <action>` then `pack`. Offer it for a slash
+(reference/character.md, "A swing's effect").
 Show the renders first; a clip with a long still tail (Tripo's slash is 6.6 s, its swing 0.6-2.7) takes `"t0"` / `"t1"`.
 **The head:** the walk's prompt tells the model to keep the eyes ahead and the chin level (a rig's walk looks down). For an action whose
 head bows or turns with the motion - a slash, a crouch, a shot aimed low - set `"head": "as_render"` (the slash has it by default): the
@@ -177,6 +182,14 @@ Offer it once a character walks. 1) `charpipe.py sit CHAR.json` (free): the rig 
 `character.json` (each facing's seat point). 3) On one of their props: `${CLAUDE_SKILL_DIR}/scripts/seat.py PROP.json CHAR.json
 --height <m>` (free; ask the character's height): placed on the seat, the prop's front piece for them worked out from both 3D heights
 → `<view>/seat/<char>-<facing>/` (front.png, seat.json, preview.png). Show the preview.
+
+## Into the user's engine
+When a character is finished and the user names their engine (or asks for Aseprite files), run
+`${CLAUDE_SKILL_DIR}/scripts/export.py <name>/out` (free): `out/export/godot/` (a scene to drop into a Godot 4 project),
+`out/export/phaser/` (an ES module for Phaser 3), `out/export/aseprite/` (one `.aseprite` an action, a tag per facing),
+`out/export/unity/` (copy its contents into `Assets/`: the prefab and the clips build themselves). A swing's effect goes along as a third
+sprite over the body. Pixel sets are not read yet:
+for those give the numbers in `pixel.json` as before.
 
 ## Touching up by hand - details in [reference/touchup.md](reference/touchup.md)
 `${CLAUDE_SKILL_DIR}/scripts/touchup.py SPEC.json` (free) is a local page where the user paints fixes: red clears (paper between the

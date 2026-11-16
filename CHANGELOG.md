@@ -3,6 +3,23 @@
 What changed in each version. The version is the one in `.claude-plugin/plugin.json`; Claude Code offers an update when it goes up.
 Changes made because of a report or a request are marked *(feedback)*.
 
+## 0.15.0 — 2026-11-16
+
+- **Files your engine opens as they are.** `export.py <name>/out` (free) writes a Godot 4 scene, a Unity folder whose editor script
+  builds the prefab and a clip per animation, an ES module for Phaser 3, and one `.aseprite` an action (a tag per facing, layers,
+  the feet marked). Each animation's shadows become one strip with one offset. Opened to check in Godot 4.7, Unity 6000.3,
+  Phaser 3.90 and Aseprite. Pixel sets are not exported yet.
+- **Effects on a swing**: `"trail": "water"` in an action that holds something - `plain`, `wind`, `water`, `fire`, `drops`, `flames`,
+  `leaves`, `greenleaves`, `petals`, `snow`, `sparkle`. Free, nothing drawn, and it follows the real motion: worked out from the
+  path the held thing takes on the rig in that action and facing (not one stock arc), a sprite of its own over the body, so an
+  action already drawn gets one. Pieces fly on from frame to frame; water and fire move as one
+  body (a sheet that tears into strings and drops, with mist; a flame coloured by its heat, with ash); only the swing itself, not
+  the wind-up; water and fire at twice the body's frames. In pixel art too (hard edges, mist see-through). The exports carry it as a
+  third sprite. *(feedback)*
+- The rain girl example has the water effect on her slash, and her pixel slash had white specks taken off by hand.
+- Not checked: effects on a held thing other than the umbrella; your own piece pictures (`"image"`); a whole `pixelart.py` run
+  writing the effect; Unity versions before 6.
+
 ## 0.14.1 — 2026-11-13
 
 - `SPRITECAST_MODEL=gpt-image-2.6-sunburst` draws with OpenAI's newer image model. **2.5 stays the default**: tried on seven

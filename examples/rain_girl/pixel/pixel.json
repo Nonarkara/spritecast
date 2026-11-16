@@ -318,5 +318,20 @@
    "px": 17022,
    "estimated": true
   }
+ },
+ "trails": {
+  "slash-south-east": {
+   "file": "trails/slash-south-east.png",
+   "frame": [
+    111,
+    166
+   ],
+   "offset": [
+    68,
+    28
+   ],
+   "frames": 16,
+   "per_frame": 2
+  }
  }
 }

@@ -415,13 +415,18 @@ def render(s, d, only=None):
             pg.evaluate('(px) => window.setCanvas(px)', canvas)       # (a held thing reaches past the walk's 512 px frame: 768 at the same scale)
             shown = put(hold, name, a['clip'], t0)
             pg.evaluate('(w) => { window.wantHeld = w; }', bool(shown))
+            tr = effect_of(a.get('trail'), d.parent) if shown else None                      # "trail": what the swing leaves in the air, a sprite of its own
+            pg.evaluate('(c) => window.setTrail(c)', tr)
+            for f in (d / 'render').glob(f'{name}-*-t.png'): f.unlink()
             for dr in action_dirs(s) + [x for x in s['mirrored']]:
                 for k, u in enumerate(pg.evaluate('(a) => window.frames(...a)', [a['clip'], dr, n, t0, t1x, s['head_up'], s['shoulder_up'], s['shoulder_wide'], True])):
                     save(u, d / f'render/{name}-{dr}-{k}.png')
                 for k, u in enumerate(pg.evaluate('window.shadowShots')): save(u, d / f'render/{name}-{dr}-{k}-s.png')
                 for k, u in enumerate(pg.evaluate('window.heldShots')): save(u, d / f'render/{name}-{dr}-{k}-held.png')     # the held thing alone
                 for k, u in enumerate(pg.evaluate('window.bodyShots')): save(u, d / f'render/{name}-{dr}-{k}-body.png')    # the body alone
-            pg.evaluate('() => { window.wantHeld = false; }')
+                for k, u in enumerate(pg.evaluate('window.trailShots')):                                                  # the swing's trail alone (a slow frame has none)
+                    if u: save(u, d / f'render/{name}-{dr}-{k}-t.png')
+            pg.evaluate('() => { window.wantHeld = false; return window.setTrail(null); }')
             pg.evaluate('() => window.clearHold()'); pg.evaluate('() => window.setCanvas(512)')
             info.setdefault('actions', {})[name] = {'clip': a['clip'], 't0': t0, 't1': t1, 'frames': n, 'loop': a['loop'], 'canvas': canvas}
             print(f'render: {name} - {n} frames of "{a["clip"]}" {t0:.2f}-{t1:.2f} s, 8 facings')
@@ -1187,6 +1192,30 @@ HOLD_WORDS['watergun'] = ('In the RIGHT hand: a small toy water pistol, bright p
 TRIPO_PRESETS = {'run', 'jump', 'dive', 'climb', 'fall', 'hurt', 'turn', 'slash', 'shoot'}
 
 
+EFFECTS = Path(__file__).resolve().parent.parent / 'effects'          # the looks that come with the skill (effects.json) and their pieces
+
+
+def effect_of(tr, spec_dir):
+    """an action's "trail" → what the renderer is handed, or None: true (the plain band), a style's name ("water"), or
+    {"style": ..., and anything of that style to change: "color", "alpha", "span", "width", "band", "image" (the user's own strip of
+    square cells in place of the style's first piece), "pieces" (the whole list)}. The pieces' pictures go as data URLs."""
+    if not tr: return None
+    tr = {} if tr is True else {'style': tr} if isinstance(tr, str) else dict(tr)
+    looks = {k: v for k, v in json.loads((EFFECTS / 'effects.json').read_text()).items() if k != '_'}
+    style = tr.pop('style', 'plain')
+    if style not in looks: sys.exit(f'spec: "trail": no style "{style}" - one of {", ".join(looks)}')
+    cfg = json.loads(json.dumps(looks[style])); own = tr.pop('image', None); cfg.update(tr)
+    if own: cfg['pieces'] = [dict((cfg.get('pieces') or [{}])[0], image=own)] + list((cfg.get('pieces') or [])[1:])
+    for p in cfg.get('pieces') or []:
+        if p.get('blob'): continue          # (a body of water or flame: soft round weights, no picture)
+        f = next((x for x in (Path(spec_dir) / p['image'], EFFECTS / p['image']) if x.exists()), None)
+        if f is None: sys.exit(f'spec: "trail": the piece picture {p["image"]} was not found (beside the spec, or in {EFFECTS})')
+        w, h = Image.open(f).size
+        if w % h: sys.exit(f'spec: "trail": {f} is {w}x{h} - a strip of SQUARE cells is wanted (its width a multiple of its height)')
+        p['cells'] = w // h; p['data'] = 'data:image/png;base64,' + base64.b64encode(f.read_bytes()).decode()
+    return cfg
+
+
 def actions_of(s):
     """the spec's "actions" → {name: {clip, t0, t1 (None: the whole clip), frames, loop, words}}; a name alone takes the defaults"""
     out = {}
@@ -1277,6 +1306,18 @@ def pack(s, d, report, out='out'):
                 shi = shi.resize((max(1, round(shi.width * k)), max(1, round(shi.height * k))), Image.LANCZOS); shi.save(d / out / f'shadows/{name}-{dr}-{i}.png', optimize=True)
                 shs.append({'file': f'shadows/{name}-{dr}-{i}.png', 'offset': [round((x0 - ab[0]) * k), round((y0 - ab[1]) * k)]})
             if len(shs) == len(ps): e['shadows'][dr] = shs
+            # the swing's trail ("trail"): one strip a facing, as many cells as the action has frames (empty where the swing is slow), in a
+            # box of its own with its offset from the frame's top-left - laid OVER the body at the same frame number
+            tx = max(1, int((a['trail'].get('frames_x') if isinstance(a.get('trail'), dict) else 0) or (effect_of(a.get('trail'), d.parent) or {}).get('frames_x') or 1))
+            ts = {i: Image.open(d / f'render/{name}-{dr}-{i}-t.png').convert('RGBA') for i in range(len(ps) * tx) if (d / f'render/{name}-{dr}-{i}-t.png').exists()}
+            bx = [t.getbbox() for t in ts.values() if t.getbbox()]
+            if a.get('trail') and bx:
+                tb = [min(b[0] for b in bx), min(b[1] for b in bx), max(b[2] for b in bx), max(b[3] for b in bx)]
+                tw, th = max(1, round((tb[2] - tb[0]) * k)), max(1, round((tb[3] - tb[1]) * k))
+                tst = Image.new('RGBA', (tw * len(ps) * tx, th), (0, 0, 0, 0))
+                for i, t in ts.items(): tst.paste(t.crop(tb).resize((tw, th), Image.LANCZOS), (i * tw, 0))
+                tst.save(d / out / f'{name}-{dr}-trail.png', optimize=True)
+                e.setdefault('trail', {})[dr] = {'file': f'{name}-{dr}-trail.png', 'frame': [tw, th], 'offset': [round((tb[0] - ab[0]) * k), round((tb[1] - ab[1]) * k)], 'frames': len(ps) * tx, 'per_frame': tx}      # per_frame effect cells to each body frame: play it at per_frame times the fps
         meta.setdefault('actions', {})[name] = e
     # seated (charpipe sit): one frame a facing at the walk's scale, in a box of their own (the knees reach further); each with the seat's
     # point on it - put that on the chair's seat

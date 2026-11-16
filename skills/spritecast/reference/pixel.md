@@ -97,6 +97,18 @@ costs; with `--yes` it draws them (twice at most a sheet) and keeps whichever dr
 thing wrong first, then the higher lowest overlap; the other is kept as `<sheet>-out.try<N>.png`. A frame that is only a little
 under 0.75 with the pose right is the user's call: show it and ask.
 
+## A swing's effect in pixel art
+An action with `"trail"` (reference/character.md, "A swing's effect") has its effect in the pixel set too: `pixelart.py` reads the same
+renders (`render/<clip>-<facing>-<i>-t.png`) and writes `trails/<clip>-<facing>.png`, with `"trails"` in `pixel.json` (`file`, `frame`,
+`offset` from the sprite's frame, `frames`, `per_frame`: effect cells to each frame of the figure). Free.
+- Made smaller by area like the figure, its colours brought to ten.
+- **Solid things keep hard edges, thin things stay see-through.** A pixel beside a solid one (water, flame, a leaf) is there or not.
+  Mist and a fading band have no solid pixel next to them: they keep one of three steps of see-through (about 28, 47, 69 %) - made
+  solid, mist was a lump of cotton (the user: "use see-through"). A dot of four pixels or fewer (a drop, a flake of ash) is never
+  see-through: solid, or not there.
+- A game that draws pixel art with see-through off (alpha test) shows mist as lumps or not at all.
+- Not checked: a whole `pixelart.py` run writing `"trails"` (the conversion itself was run on the rain girl's slash).
+
 ## Fixing by hand: `pixeledit.py`
 
 Pixel art is not all to be had by rule: a patch of paper left where an arm crosses the body, a face that came out poorer in one

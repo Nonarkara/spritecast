@@ -16,6 +16,7 @@ Three OKs: `turnaround`, `3d` (= `model` + `rig` + `render`), `draw` (then `fini
 | `preview` | every frame on one sheet, a GIF per facing, and every facing walking at once in `walk-all.mp4` (with ffmpeg) | free |
 | actions | (optional) `"actions"` in the spec: each rendered, drawn and finished like the walk → `out/<name>-<facing>.png`, `"actions"` in `character.json`; `rig` asks Tripo for the presets (run, jump, slash, shoot, dive, climb, fall, hurt, turn; three beside walk and idle), your own rig gives any clip; `"hold"` puts a shape-built thing (an umbrella) in the right hand; `"head": "as_render"` draws the head bowed and turned as the render (the slash's default - the walk's "eyes ahead" lifted it); `redraw` covers actions: a held thing in the wrong place (checked against the render's held thing alone) is redrawn by itself, a frame only a little off is listed for the user (`--low` redraws it too) | ~10 Tripo credits and ~$1.8 an action |
 | `sit` | (optional) the rig seated in 8 facings (`render/sit-*`), then with `--draw` drawn and finished → `out/sit-<facing>.png`, `"sit"` in `character.json` (`frame`, and per facing `file`, `seat`, `seat_height`, `shadow`) | free; `--draw` ~$0.22 |
+| `export.py <name>/out` | (its own script) the finished set as files an engine opens as they are → `out/export/`: `godot/` (a folder to drop into a Godot 4 project: `<name>.tscn` with Shadow and Body, two SpriteFrames, `<name>.gd` with `play("walk", "south-east")`), `phaser/` (`<name>.js`, an ES module for Phaser 3: `preload`, `create`, `add`), `aseprite/` (`<name>-<action>.aseprite`: a tag per facing, layers `shadow` and `body`, a slice `feet` with the pivot; a swing's effect as a layer `effect`), `unity/` (copy its contents into `Assets/`: an editor script builds `<name>.prefab` - Animator > Shadow, Body - with a clip per animation; `GetComponent<Animator>().Play("walk_south_east")`). Each animation's shadows become one strip with one offset; a swing's effect (`"trail"`) is a third sprite, Effect, over the body, at its own pace. `--only godot,aseprite`, `--to DIR`, `--name`. Checked by opening them in Godot 4.7, Phaser 3.90, Aseprite and Unity 6000.3; pixel sets (`pixel.json`) are not read yet | free |
 | `pack` | frames/ → out/ strips again (after `touchup.py --apply`; `finish` packs too) | free |
 | `touchup.py` | (optional) a local page to fix frames by hand: red clears, green brings pixels back from the drawing; `--apply` lays them on and packs; `finish` re-applies them | free |
 | `facecheck` | (optional, needs mediapipe) one character's head for its height against another's, facing by facing, by face landmarks; `--apply` writes `head_fit` | free |
@@ -228,6 +229,37 @@ the limbs); `SPRITECAST_KEY=white` cuts by white on purpose.
   thick - `g.userData.grip = { at: [x, y, z], r: radius }` (or `half: [along the fingers, off the palm]` for a box; `hl`: half its
   length). Everything above then works for it. Tell the user when a thing they ask for is not built in, and build it.
 - Show the user `hand-*.png` with the renders, before the first paid sheet.
+
+## A swing's effect: `"trail"` - free, nothing drawn
+`"trail"` in an action whose hand holds something (`{"name": "slash", "hold": "umbrella", "trail": "water"}`) gives the swing an effect:
+a sprite of its own that the game lays OVER the body at the same moment. The body's frames are not touched and nothing is paid: an
+action that is already drawn gets its effect with `render --only slash` and `pack`.
+
+- **How.** The rig knows where the held thing's far end is at every moment; `render` reads it 200 times through the action (the PATH),
+  finds the STROKE (the longest stretch over half its top speed - the swing, not the wind-up), and along it draws a BAND and lets go
+  PIECES. A piece is born once and flies on - carried a little by the swing, the far end fastest, flung outward, falling or rising,
+  turning - so a drop in one frame is the same drop further on in the next. The body and the held thing hide what is behind them.
+- **The looks** (`skills/spritecast/effects/effects.json`): `plain` (a white band; `"color"`), `wind` (thin pale streaks), `water`,
+  `fire`, `drops`, `flames`, `leaves`, `greenleaves`, `petals`, `snow`, `sparkle`. A name alone, or `{"style": "leaves", ...}` with
+  anything of that look changed (`"alpha"`, `"span"`: how long a band, in frames; `"when": "always"`: the wind-up too;
+  `"frames_x"`; `"pieces"`: the whole list). A new look is one more entry in that file.
+- **`water` and `fire` are ONE BODY, not loose pieces** (the user: "don't water and fire move as a mass?"). Their pieces are soft round
+  weights added into a field, and only where the field passes a level is anything shown: close together they are one sheet, a neck
+  forms as they part, and it breaks - water goes sheet → strings → drops, with mist rising after it; flame is white-yellow where
+  much and new, through orange to a red rim that darkens and goes as it cools, with ash drifting up. `drops` and `flames` are the
+  same two as loose pieces.
+- **More effect frames than body frames.** `water` and `fire` have `"frames_x": 2`: two effect cells to each body frame, played at
+  twice the fps over the same body frame. At one to one a sheet was whole in one frame and drops in the next - the tearing was
+  never seen. `character.json`: `"trail": {<facing>: {"file", "frame", "offset", "frames", "per_frame"}}` in the action - the cell
+  size, its top-left from the body frame's top-left, how many cells, and how many of them to each body frame. `export.py` carries it
+  into every engine as a third sprite.
+- **Your own pieces**: `"image": "petals.png"` (beside the spec) - a strip of square cells, each a variant, drawn pointing up - in
+  place of the look's first piece. The built-in ones are drawn from shapes by `effects/make_pieces.py`.
+- **Any held thing.** The umbrella has its far end written down; for another thing it is the far corner of its box along its longest
+  side. Only an action with a `hold` has a path.
+- **An action drawn before 0.14 and rendered again**: the hand now closes on the handle, so the render's held thing sits a little
+  off the one drawn then, and the effect with it. Small, and only on old sets.
+- **Not checked**: `"image"` with a user's own strip; a thing other than the umbrella.
 
 ## A held thing: say it part by part
 

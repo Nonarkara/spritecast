@@ -46,6 +46,36 @@ def clean(idx, m):   # a pixel none of whose 4 neighbours shares its colour take
     return out
 
 
+def effect_strip(files, h, colours=10, cut=0.35, thin=0.15, levels=(72, 120, 176)):
+    """a swing's effect (render/<clip>-<facing>-<i>-t.png; None where a frame has none) as pixel art at the sprite's size: made smaller by
+    area like the figure, its colours brought to a few (`colours`, k-means in Lab over all the frames). A SOLID thing (water, flame, a
+    leaf) keeps hard edges: a pixel beside a solid one is either there or not (`cut`: the share of it the effect must cover). A THIN
+    thing (mist, a fading band: no solid pixel next to it) stays see-through, at one of a few steps (`levels`, of 255) - mist made solid
+    was a lump of cotton; a dot of four pixels or fewer is never see-through. → (strip, [cell w, cell h], [x, y] of the cell on the made-smaller canvas), or None"""
+    from scipy import ndimage as ndi
+    fr = [down(Image.open(f).convert('RGBA'), h) if f else None for f in files]
+    al = []
+    for x in fr:
+        if x is None: al.append(None); continue
+        a = x[1]; near = ndi.maximum_filter(a, 3) >= 0.8                       # a solid pixel here or next door: an edge, cut hard
+        step = np.digitize(a, [thin, 0.32, 0.55]); soft = np.array((0,) + tuple(levels), np.uint8)[step]
+        a8 = np.where(near, np.where(a >= cut, 255, 0), np.where(a >= 0.8, 255, soft)).astype(np.uint8)
+        lab_, n_ = ndi.label(a8 > 0); small = np.isin(lab_, 1 + np.nonzero(ndi.sum(np.ones_like(a8), lab_, range(1, n_ + 1)) <= 4)[0])
+        a8[small & (a >= 0.22)] = 255; a8[small & (a < 0.22)] = 0             # a dot of a few pixels (a drop, a flake of ash) is solid or not there: see-through, it was a dim smudge
+        al.append(a8)
+    ms = [(a > 0) if a is not None else None for a in al]
+    if not any(m is not None and m.any() for m in ms): return None
+    every = np.any([m for m in ms if m is not None], 0); ys, xs = np.nonzero(every); y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    pix = np.concatenate([x[0][m] for x, m in zip(fr, ms) if m is not None and m.any()])
+    pal = palette(pix, min(colours, max(2, len(np.unique((pix * 255).astype(np.uint8), axis=0))))); rgb = (np.clip(lab2rgb(pal), 0, 1) * 255).round().astype(np.uint8)
+    st = Image.new('RGBA', ((x1 - x0) * len(fr), y1 - y0), (0, 0, 0, 0))
+    for n, (x, m, a_) in enumerate(zip(fr, ms, al)):
+        if m is None or not m.any(): continue
+        idx = snap(x[0], pal, None); a = np.zeros(m.shape + (4,), np.uint8); a[m, :3] = rgb[idx[m]]; a[..., 3] = a_
+        st.paste(Image.fromarray(a[y0:y1, x0:x1]), (n * (x1 - x0), 0))
+    return st, [int(x1 - x0), int(y1 - y0)], [int(x0), int(y0)]
+
+
 PALETTES = Path(__file__).resolve().parent.parent / 'palettes'          # the palettes that come with the skill: <name>.hex, its first line says whose it is
 
 

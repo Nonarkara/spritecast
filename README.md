@@ -206,6 +206,35 @@ yet (see the [Roadmap](#roadmap)).
 
 </details>
 
+### Effects on a swing: water, fire, leaves
+
+A swing can leave something in the air. Add `"trail"` to the action - `{"name": "slash", "hold": "umbrella", "trail": "water"}` - and
+you get the effect as a sprite of its own, laid over the body. **It is free and nothing is drawn again**: the 3D rig knows where the
+umbrella's tip is at every moment, so the effect is worked out from that path. A slash you already have gets one without touching
+its frames.
+
+![the rain girl's umbrella slash with eight effects: plain, wind, water, fire, leaves, petals, snow, sparkle](docs/effects.gif)
+
+- **It follows the real motion.** An image model asked for a slash invents one arc and repeats it; a stock effect is one shape pasted
+  on every swing. Here the band and the pieces come off the path this character's umbrella takes in this action, seen from each
+  of the 8 facings, and the body and the umbrella hide the part that passes behind them. Change the motion and the effect changes.
+- **Eleven looks**: `plain`, `wind`, `water`, `fire`, `drops`, `flames`, `leaves`, `greenleaves`, `petals`, `snow`, `sparkle`. Colours,
+  amounts and speeds can be changed, a new look is one more entry in a file, and you can give your own little pictures to be
+  scattered (`"image": "mine.png"`).
+- **Pieces fly on from frame to frame.** A leaf is let go once, is carried a little by the swing, turns, sways and settles on the
+  ground - the same leaf in every frame, not a new scatter each time.
+- **Water and fire move as one body** (you asked). Water comes off as a sheet, stretches into strings, breaks into drops and leaves
+  mist; flame is white-yellow at its heart, orange, then a red rim that darkens as it cools, with ash drifting up.
+- **Only the swing itself.** Nothing comes off while the umbrella is being raised: the fast stretch of the motion is found by itself.
+- **Twice the frames.** The body is drawn 8 times, but water and fire have 16 frames and play at twice the pace over them - at 8
+  the sheet was whole in one frame and already drops in the next.
+- **In pixel art too**, at the sprite's size: solid things keep hard edges, mist stays see-through.
+
+![the same slash as 96-px pixel art, with water and with fire](docs/effects-pixel.gif)
+
+**Honestly:** these are worked out, not painted, so they are clean rather than hand-drawn; fire is the weakest of them. The path
+is the held thing's, so an action needs something in the hand. Made and looked at on the umbrella slash only.
+
 ### Pixel art (arcade size)
 
 ![five facings of the rain girl throwing a snowball, each ball flying its own way over an isometric floor](docs/pixel-throw.gif)
@@ -504,6 +533,20 @@ their 8 facings are 45° apart. `camera` covers props and posed figures.
 
 ## Putting it in your engine
 
+**Ready-made files for Godot, Unity, Phaser and Aseprite.** `export.py <name>/out` (free) writes `out/export/`:
+
+| | what you get | how you use it |
+|---|---|---|
+| `godot/` | a scene with Shadow, Body and Effect, and a small script | drop the folder into a Godot 4 project; `play("walk", "south-east")` |
+| `unity/` | the strips and an editor script | copy into `Assets/`; a prefab and a clip per animation build themselves; `GetComponent<Animator>().Play("walk_south_east")` |
+| `phaser/` | an ES module for Phaser 3 | `preload(this, base)`, `create(this)`, `add(this, x, y).play('walk', 'south-east')` |
+| `aseprite/` | one `.aseprite` per action | a tag per facing, layers `shadow`, `body`, `effect`, a slice marking the feet |
+
+The character stands where you put it (the point between the feet), the shadow keeps step with the body, and a swing's effect
+plays over it. Each was opened to check: Godot 4.7, Unity 6000.3, Phaser 3.90 and Aseprite. Pixel sets are not exported yet.
+
+To do it yourself, the numbers are all in the JSON:
+
 `sprite.json` tells you where the prop touches the ground:
 
 ```json
@@ -676,7 +719,9 @@ What is planned next, roughly in this order (no dates - it moves with feedback):
 - **More actions and things to hold**: run, jump and slash are in, and any Mixamo clip can be added (a throw, with a snowball that is let go); next, more held things (a sword, a staff) and an idle breath.
 - **Small sprites**: pixel art at 96 px, and at 64 px for a character designed small, is in (see Pixel art); a 32-px set is made from
   the 64 one. Next: making the small design from the ordinary one in one step, and a face at 32 px that needs no hand.
-- **Engine exports**: sprite sheets with Godot, Unity and Aseprite files ready to import.
+- **Engine exports**: Godot, Unity, Phaser and Aseprite files are in (see Putting it in your engine). Next: pixel sets.
+- **Effects**: a swing's water, fire, leaves and more are in (see Effects on a swing). Next: effects with no held thing (a kick, a
+  footstep's splash), and painted pieces.
 
 See [CHANGELOG.md](CHANGELOG.md) for what each version changed.
 

@@ -324,11 +324,11 @@
    "file": "trails/slash-south-east.png",
    "frame": [
     113,
-    175
+    174
    ],
    "offset": [
-    67,
-    20
+    66,
+    21
    ],
    "frames": 24,
    "per_frame": 3

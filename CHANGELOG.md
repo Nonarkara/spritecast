@@ -12,7 +12,9 @@ Changes made because of a report or a request are marked *(feedback)*.
   render again to get it. *(feedback)*
 - The rain girl example's water, 2D in all eight facings and the pixel one, rendered again this way. (Its drawings come from renders
   made before 0.14.0's hand closing on the handle, which sits the umbrella about 20 px further into the fist; its water was rendered
-  with the umbrella where the drawings have it.)
+  with the umbrella where the drawings have it.) Its south-east swing, 2D and pixel, is now the redrawn one the README's loop already
+  showed - the shaft as thick as the render, the left hand on it in frame 5 - and the README's effect pictures (`effects.gif`,
+  `effects-pixel.gif`) and joined loop (`loop-2d.gif`) are made again from it with the new timing.
 - The README's first picture: the "GPT alone" side smaller and stamped, each of its failures with what SpriteCast does instead; on
   the SpriteCast side a winter night behind the floor, a row of actions from the same 3D (run, jump, the swing with its water) and
   the pixel swing with its water.

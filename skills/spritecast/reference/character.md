@@ -299,7 +299,11 @@ action that is already drawn gets its effect with `render --only slash` and `pac
   same two as loose pieces.
 - **More effect frames than body frames.** `water` has `"frames_x": 3`, `fire` and the piece looks 2: that many effect cells to each body frame, played at
   that many times the fps over the same body frame. At one to one a sheet was whole in one frame and drops in the next - the tearing was
-  never seen. `character.json`: `"trail": {<facing>: {"file", "frame", "offset", "frames", "per_frame"}}` in the action - the cell
+  never seen. The cells sit AROUND the body frame's moment, not after it (water's three: a third of a frame before, on it, a third
+  after): the drawing holds one pose for all of them, and cells only after it had the water down at her feet while the drawn umbrella
+  was still up - a fast swing's tip had gone on two thirds of a frame. Around it, the water is at most a third away, and behind the
+  tip as often as ahead. A swing so fast that this still shows: an in-between frame there (`between`) is the real fix.
+  `character.json`: `"trail": {<facing>: {"file", "frame", "offset", "frames", "per_frame"}}` in the action - the cell
   size, its top-left from the body frame's top-left, how many cells, and how many of them to each body frame. `export.py` carries it
   into every engine as a third sprite.
 - **Your own pieces**: `"image": "petals.png"` (beside the spec) - a strip of square cells, each a variant, drawn pointing up - in

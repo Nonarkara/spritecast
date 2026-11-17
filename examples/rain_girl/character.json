@@ -2773,12 +2773,12 @@
     "south": {
      "file": "slash-south-trail.png",
      "frame": [
-      153,
-      397
+      172,
+      400
      ],
      "offset": [
-      30,
-      19
+      8,
+      16
      ],
      "frames": 24,
      "per_frame": 3
@@ -2786,12 +2786,12 @@
     "south-east": {
      "file": "slash-south-east-trail.png",
      "frame": [
-      255,
-      405
+      258,
+      408
      ],
      "offset": [
-      132,
-      11
+      129,
+      8
      ],
      "frames": 24,
      "per_frame": 3
@@ -2799,12 +2799,12 @@
     "east": {
      "file": "slash-east-trail.png",
      "frame": [
-      245,
-      373
+      248,
+      357
      ],
      "offset": [
-      142,
-      -19
+      138,
+      -22
      ],
      "frames": 24,
      "per_frame": 3
@@ -2812,11 +2812,11 @@
     "north-east": {
      "file": "slash-north-east-trail.png",
      "frame": [
-      236,
-      377
+      237,
+      331
      ],
      "offset": [
-      151,
+      149,
       -57
      ],
      "frames": 24,
@@ -2825,11 +2825,11 @@
     "north": {
      "file": "slash-north-trail.png",
      "frame": [
-      186,
-      355
+      191,
+      302
      ],
      "offset": [
-      120,
+      89,
       -57
      ],
      "frames": 24,
@@ -2838,8 +2838,8 @@
     "north-west": {
      "file": "slash-north-west-trail.png",
      "frame": [
-      258,
-      358
+      259,
+      310
      ],
      "offset": [
       -86,
@@ -2851,12 +2851,12 @@
     "west": {
      "file": "slash-west-trail.png",
      "frame": [
-      245,
-      359
+      249,
+      328
      ],
      "offset": [
       -86,
-      -32
+      -35
      ],
      "frames": 24,
      "per_frame": 3
@@ -2864,12 +2864,12 @@
     "south-west": {
      "file": "slash-south-west-trail.png",
      "frame": [
-      238,
-      380
+      239,
+      417
      ],
      "offset": [
       -86,
-      2
+      -2
      ],
      "frames": 24,
      "per_frame": 3

@@ -14,7 +14,7 @@ at your game's camera angle, with a 3D shadow under every frame - and the props 
 <a href="README.ko.md">한국어</a>
 </p>
 
-![GPT alone: one direction, the same leg always in front, no shadow. SpriteCast: the same character walking in eight directions on the game's floor, each with its shadow, and as pixel art](docs/hero.gif)
+![GPT alone: one direction, the same leg always in front, no shadow. SpriteCast: the same character walking in eight directions on the game's floor, each with its shadow; a row of actions from the same 3D, the swing throwing water; and as pixel art](docs/hero.gif)
 
 <p align="center"><i>The same image model, the same character sheet. Left: GPT asked for a walk, as it came out. Right: what the 3D adds.</i></p>
 

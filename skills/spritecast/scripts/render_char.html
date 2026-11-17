@@ -337,7 +337,11 @@ window.frames = (clipName, dir, n, t0, t1, head, up = 0, wide = 1, shadows = fal
       // pace over the same body frame, a sheet of water is seen tearing instead of being whole in one frame and drops in the next
       const m = Math.max(1, FX.frames_x || 1), solid = []; root.traverse((o) => { if (o.isMesh) { solid.push([o, o.material]); o.material = HIDE; } });
       for (let j = 0; j < m; j++) {
-        const ribbon = fx ? fxDraw(fx, parts, t + (t1 - t0) / n * j / m, (t1 - t0) / n, FX) : null;
+        // the m effect frames sit AROUND the body frame's moment (m = 3: a third of a frame before it, on it, a third after), not all after
+        // it: the drawn body holds one pose for all m, and an effect only ahead of it ran up to 2/3 of a frame past the drawn tip (the
+        // water already down at the feet while the umbrella was still up). Kept inside the clip at its two ends
+        const te = Math.min(t1, Math.max(t0, t + (t1 - t0) / n * (j - (m - 1) / 2) / m));
+        const ribbon = fx ? fxDraw(fx, parts, te, (t1 - t0) / n, FX) : null;
         if (!ribbon) { window.trailShots.push(null); continue; }
         renderer.clear(); renderer.autoClear = false;
         if (ribbon.userData.mass) massPass(ribbon.userData.mass, FX.mass);

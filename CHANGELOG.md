@@ -3,6 +3,22 @@
 What changed in each version. The version is the one in `.claude-plugin/plugin.json`; Claude Code offers an update when it goes up.
 Changes made because of a report or a request are marked *(feedback)*.
 
+## 0.16.1 — 2026-11-17
+
+- **A swing's effect stays with the drawn umbrella.** The effect's extra cells (water has three to each body frame) now sit around
+  the body frame's moment - a third of a frame before it, on it, a third after - instead of all after it. The drawing holds one pose
+  for all three, and with every cell after it a fast swing's water was already down at her feet while the drawn umbrella was still
+  up. Now the water is at most a third of a frame away, and as often behind the tip as ahead. Free, nothing to change in a spec;
+  render again to get it. *(feedback)*
+- The rain girl example's water, 2D in all eight facings and the pixel one, rendered again this way. (Its drawings come from renders
+  made before 0.14.0's hand closing on the handle, which sits the umbrella about 20 px further into the fist; its water was rendered
+  with the umbrella where the drawings have it.)
+- The README's first picture: the "GPT alone" side smaller and stamped, each of its failures with what SpriteCast does instead; on
+  the SpriteCast side a winter night behind the floor, a row of actions from the same 3D (run, jump, the swing with its water) and
+  the pixel swing with its water.
+- The README's banner: the swing at 0.85 of its speed, the letters hop where the snowball and the water hit, the wet ones drip, and a
+  winter night stands behind it all.
+
 ## 0.16.0 — 2026-11-16
 
 - **The frames between two animations**: `{"name": "ready", "between": ["walk", "slash"], "frames": 3}` - the 3D rig's poses

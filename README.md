@@ -229,7 +229,8 @@ its frames.
   same light as the character; fast drops are drawn long along their way, and a few burst on the floor in a ring and a splash.
 - **Only the swing itself.** Nothing comes off while the umbrella is being raised: the fast stretch of the motion is found by itself.
 - **More frames than the body.** The body is drawn 8 times, but water has 24 effect frames (three to each) and fire 16 (two), played
-  faster over them - at 8 the sheet was whole in one frame and already drops in the next.
+  faster over them - at 8 the sheet was whole in one frame and already drops in the next. They sit around each body frame
+  (a third of a frame before it, on it, a third after), so the water stays with the drawn umbrella instead of running ahead of it.
 - **In pixel art too**, at the sprite's size: solid things keep hard edges, mist stays see-through.
 
 ![the same slash as 96-px pixel art, with water and with fire](docs/effects-pixel.gif)
@@ -250,7 +251,8 @@ the stance (3 frames from the rig), swings with the water effect, comes back up 
   out. `"slash:end"` starts from an attack's last pose instead of its first.
 - **Free to render, drawn like any action** - one sheet for three or four frames, about $0.08.
 - **Look at them joined**: `charpipe.py loop hero.json --only walk,ready,slash,recover --facing south-east` (free) makes a GIF like the
-  one above from the finished frames, so a frame that jumps is seen before anything is drawn again.
+  one above from the finished frames, so a frame that jumps is seen before anything is drawn again. A pixel set
+  can be fixed that way too, all the frames end to end in the editor: `pixeledit.py hero.json --join walk,ready,slash,recover --facing south-east`.
 - **One frame wrong? Draw it alone.** `charpipe.py frame hero.json --only slash --facing south-east --frame 5 --yes` (~$0.08) draws
   just that frame again; `"frame_words"` in the action tells the image model what that frame's render cannot. Frame 5 above had the
   left fist floating over the umbrella five times running; told the hand is mostly hidden behind her head, it came out right.
@@ -287,6 +289,8 @@ About $0.075 a sheet: a walk in all eight facings is 18 sheets (about $1.35); th
   the browser: magic-erase a patch of left-over white, pencil, change a colour, move a selection, copy a good face into the other
   frames. Add any colour to the palette; and the frames themselves can be copied (an in-between to draw on - 8 frames made 9),
   deleted and moved: the shadow and the game's data follow. The edits are kept and laid on again by every later build.
+  Animations played one after another can be opened as one, to play the whole loop and fix it where it jumps:
+  `pixeledit.py hero.json --join walk,ready,slash,recover --facing south-east`.
 
 ![the pixel editor: a frame on a grid, the frame before shown faint, the tools, and how much was done by AI and by hand](docs/pixel-edit.png)
 
@@ -299,10 +303,13 @@ How much is left to the hand: very little. For the 40 throw frames, about 6 minu
 hand work was the magic eraser - a click on each speck of left-over white, in 10 of the 40 frames (131 pixels, 0.15 % of the
 sprites). No face was touched: they are as the pipeline made them. The build prints those numbers every time.
 
-**A harder set, and what the hand did.** Pixel art does need some fixing by hand - a few pixels a frame, the kind anyone can do
-with an eraser and a pencil, no drawing skill. The same loop as the one under "Joining two animations", in pixel art: she walks with her umbrella, goes down into the stance, swings, comes back up and walks on. That is four animations joined, 23 frames. Every frame was touched: 1,196 pixels of 51,442 (2.3 %), about 60
-minutes in the editor by someone who does not draw - left-over white, the umbrella's tip and edge made the same from frame to
-frame. Not fixed: in two walk frames the umbrella is drawn a little off the 3D one's angle and length.
+**A harder set, and what the hand did.** With something held - a weapon, an umbrella - its details need a little fixing by hand:
+a few pixels a frame, with an eraser and a pencil, no drawing skill. The same loop as the one under "Joining two animations", in pixel
+art: she walks with her umbrella, goes down into the stance, swings, comes back up and walks on - four animations joined, 23 frames.
+Only the umbrella was fixed by hand: its tip and edge made the same from frame to frame. The character was not; a few left-over white
+specks were erased, nothing more. In all 1,196 pixels of 51,442 (2.3 %), by someone who does not draw, in a few minutes. What made it quick, and what matters most in pixel art: looking at all 23 frames in a row, playing, not one at a time - a fix is
+making sure no part's pixels change a lot from one frame to the next. Not fixed: in two walk frames
+the umbrella is drawn a little off the 3D one's angle and length.
 
 
 - **The editor shows where the 3D has things** (key `4`): the held thing in red and the body's outline in blue, over the frame you

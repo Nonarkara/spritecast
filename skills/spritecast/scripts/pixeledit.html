@@ -214,6 +214,6 @@ addEventListener('keyup', (e) => { if (e.key === ' ') { space = false; stage.cla
     E[a.name] = {}; const [ox, oy] = D.origin; for (const [f, e] of Object.entries(a.edits)) { const m = new Map(); for (const [px_, py] of e.clear || []) m.set(key(px_ - ox, py - oy), null); for (const [px_, py, r, g, b] of e.set || []) m.set(key(px_ - ox, py - oy), [r, g, b]); E[a.name][f] = m; }
     const b = document.createElement('button'); b.className = 'anim'; const n = Object.keys(D.review[a.name] || {}).length; b.innerHTML = a.name + `<span class="n">${n ? n + ' to look at' : a.frames}</span>`; b.onclick = () => pickAnim(i); box.appendChild(b); }
   Z = Math.max(3, Math.min(16, Math.floor(Math.min((stage.clientHeight - 96) / D.frame[1], (stage.clientWidth - 96) / D.frame[0]))));          // (with the 3D render beside, the wheel zooms out to fit both) $('#zoom').value = Z;
-  if (D.px === 'prop') { $('#frows').style.display = 'none'; $('#frow2').style.display = 'none'; }          // (a prop's frames are its sides)
+  if (D.px === 'prop' || D.joined) { $('#frows').style.display = 'none'; $('#frow2').style.display = 'none'; }          // (a prop's frames are its sides; joined animations: copy, delete and move each in its own)
   pickAnim(0); setTool('erase'); window.ready = true; })();
 </script></body></html>

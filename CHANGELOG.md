@@ -21,6 +21,12 @@ Changes made because of a report or a request are marked *(feedback)*.
 - The README in four more languages: 简体中文 (`README.zh-CN.md`), 日本語 (`README.ja.md`), Español (`README.es.md`) and Português
   (`README.pt-BR.md`). Each links to all the others, and the pictures with words in them are in each language too, as the Korean
   ones were.
+- **Animations that play one after another, fixed as one**: `pixeledit.py CHAR.json --join walk,ready,slash,recover --facing south-east`
+  opens their frames end to end, to play the whole loop and fix a part where it jumps - across a join as well as inside one. Each
+  edit goes to its own animation's frame. *(feedback)*
+- The README's pixel hand-work said as it was: only the held umbrella was fixed (its tip and edge), the character not, beyond a few
+  left-over white specks; a few minutes' work. The "about 60 minutes" in 0.16.0 counted edits lost when the editor was stopped
+  under them and drawn again.
 - The README's joined loop (`loop-2d.gif`) without the blotches on her face: one palette for every frame, the water's blues among
   it, had left the skin a few tones. Each frame now has its own - and so does `charpipe.py loop`'s GIF, where such blotches could be
   taken for the image model's and a frame drawn again for nothing.

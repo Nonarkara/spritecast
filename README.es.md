@@ -229,7 +229,8 @@ sus fotogramas.
   misma luz que el personaje; las gotas rápidas se dibujan alargadas en su dirección, y unas cuantas revientan en el suelo en un anillo y una salpicadura.
 - **Solo el golpe en sí.** No sale nada mientras se levanta el paraguas: el tramo rápido del movimiento se detecta solo.
 - **Más fotogramas que el cuerpo.** El cuerpo se dibuja 8 veces, pero el agua tiene 24 fotogramas de efecto (tres por cada uno) y el fuego 16 (dos), reproducidos
-  más rápido encima: a 8, la lámina estaba entera en un fotograma y ya eran gotas en el siguiente.
+  más rápido encima: a 8, la lámina estaba entera en un fotograma y ya eran gotas en el siguiente. Se reparten alrededor de cada
+  fotograma del cuerpo (un tercio antes, en él, un tercio después), así el agua acompaña al paraguas dibujado en vez de adelantarse.
 - **También en pixel art**, al tamaño del sprite: lo sólido mantiene bordes duros, la bruma sigue siendo transparente.
 
 ![el mismo tajo como pixel art de 96 px, con agua y con fuego](docs/effects-pixel.gif)
@@ -250,7 +251,8 @@ la postura (3 fotogramas del rig), golpea con el efecto de agua, vuelve a subir 
   la salida. `"slash:end"` empieza desde la última pose de un ataque en lugar de la primera.
 - **Gratis de renderizar, se dibuja como cualquier acción**: una hoja para tres o cuatro fotogramas, unos $0.08.
 - **Míralas unidas**: `charpipe.py loop hero.json --only walk,ready,slash,recover --facing south-east` (gratis) genera un GIF como el
-  de arriba con los fotogramas terminados, así se ve un fotograma que salta antes de volver a dibujar nada.
+  de arriba con los fotogramas terminados, así se ve un fotograma que salta antes de volver a dibujar nada. Un set en
+  pixel art se puede corregir así también, con todos los fotogramas seguidos en el editor: `pixeledit.py hero.json --join walk,ready,slash,recover --facing south-east`.
 - **¿Un fotograma mal? Dibújalo solo.** `charpipe.py frame hero.json --only slash --facing south-east --frame 5 --yes` (~$0.08) vuelve a dibujar
   solo ese fotograma; `"frame_words"` en la acción le dice al modelo de imagen lo que el render de ese fotograma no puede. El fotograma 5 de arriba tenía el
   puño izquierdo flotando sobre el paraguas cinco veces seguidas; tras decirle que la mano queda casi oculta detrás de la cabeza, salió bien.
@@ -287,6 +289,8 @@ Unos $0.075 por hoja: una caminata en las ocho orientaciones son 18 hojas (unos 
   el navegador: borrado mágico de una mancha de blanco sobrante, lápiz, cambiar un color, mover una selección, copiar una cara buena en los otros
   fotogramas. Añade cualquier color a la paleta; y los propios fotogramas se pueden copiar (un intermedio sobre el que dibujar: de 8 fotogramas salieron 9),
   borrar y mover: la sombra y los datos del juego los siguen. Los retoques se guardan y se vuelven a aplicar en cada build posterior.
+  Las animaciones que se reproducen una tras otra se pueden abrir como una sola, para ver el bucle entero y corregir donde salta:
+  `pixeledit.py hero.json --join walk,ready,slash,recover --facing south-east`.
 
 ![el editor de píxeles: un fotograma sobre una cuadrícula, el fotograma anterior mostrado tenue, las herramientas, y cuánto hizo la IA y cuánto se hizo a mano](docs/pixel-edit.png)
 
@@ -299,10 +303,13 @@ Cuánto queda para hacer a mano: muy poco. Para los 40 fotogramas del lanzamient
 trabajo a mano fue el borrador mágico: un clic en cada mota de blanco sobrante, en 10 de los 40 fotogramas (131 píxeles, el 0.15 % de los
 sprites). No se tocó ninguna cara: están como las dejó el pipeline. El build imprime esas cifras cada vez.
 
-**Un juego más difícil, y lo que hizo la mano.** El pixel art sí necesita algunos retoques a mano: unos pocos píxeles por fotograma, del tipo que cualquiera puede hacer
-con un borrador y un lápiz, sin saber dibujar. El mismo bucle que el de "Unir dos animaciones", en pixel art: camina con su paraguas, baja a la postura, golpea, vuelve a subir y sigue caminando. Son cuatro animaciones unidas, 23 fotogramas. Se tocaron todos los fotogramas: 1,196 píxeles de 51,442 (2.3 %), unos 60
-minutos en el editor por alguien que no dibuja: blanco sobrante, la punta y el borde del paraguas igualados de un fotograma a
-otro. Sin corregir: en dos fotogramas de la caminata el paraguas está dibujado con un ángulo y una longitud algo distintos de los del 3D.
+**Un juego más difícil, y lo que hizo la mano.** Si el personaje lleva algo (un arma, un paraguas), los detalles de eso necesitan un
+pequeño retoque a mano: unos pocos píxeles por fotograma, con un borrador y un lápiz, sin saber dibujar. El mismo bucle que el de "Unir
+dos animaciones", en pixel art: camina con su paraguas, baja a la postura, golpea, vuelve a subir y sigue caminando; cuatro animaciones
+unidas, 23 fotogramas. Solo se retocó a mano el paraguas: la punta y el borde igualados de un fotograma a otro. El personaje no; solo se
+borraron unas pocas motas blancas sobrantes. En total, 1,196 píxeles de 51,442 (2.3 %), por alguien que no dibuja, en unos minutos. Lo que lo hizo rápido, y lo que más importa en pixel art: ver los 23 fotogramas seguidos, en reproducción, no uno por uno; corregir es
+lograr que ninguna parte cambie mucho de píxeles de un fotograma al siguiente. Sin corregir: en dos
+fotogramas de la caminata el paraguas está dibujado con un ángulo y una longitud algo distintos de los del 3D.
 
 
 - **El editor muestra dónde tiene las cosas el 3D** (tecla `4`): el objeto en la mano en rojo y el contorno del cuerpo en azul, sobre el fotograma que

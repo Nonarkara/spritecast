@@ -229,7 +229,8 @@ frames dele.
   mesma luz do personagem; gotas rápidas são desenhadas alongadas na direção em que vão, e algumas estouram no chão num anel e num respingo.
 - **Só o golpe em si.** Nada sai enquanto o guarda-chuva está sendo erguido: o trecho rápido do movimento é encontrado sozinho.
 - **Mais frames que o corpo.** O corpo é desenhado 8 vezes, mas a água tem 24 frames de efeito (três para cada) e o fogo 16 (dois), tocados
-  mais rápido por cima - com 8, a lâmina estava inteira num frame e já em gotas no seguinte.
+  mais rápido por cima - com 8, a lâmina estava inteira num frame e já em gotas no seguinte. Eles ficam em volta de cada
+  frame do corpo (um terço antes, nele, um terço depois), então a água acompanha o guarda-chuva desenhado em vez de ir na frente.
 - **Também em pixel art**, no tamanho do sprite: coisas sólidas mantêm bordas duras, a névoa continua transparente.
 
 ![o mesmo golpe em pixel art de 96 px, com água e com fogo](docs/effects-pixel.gif)
@@ -250,7 +251,8 @@ a postura (3 frames do rig), golpeia com o efeito de água, volta a subir (mais 
   a saída. `"slash:end"` começa da última pose de um ataque em vez da primeira.
 - **Grátis para renderizar, desenhado como qualquer ação** - uma folha para três ou quatro frames, cerca de $0.08.
 - **Veja tudo junto**: `charpipe.py loop hero.json --only walk,ready,slash,recover --facing south-east` (grátis) faz um GIF como o
-  de cima a partir dos frames finalizados, para que um frame que pula seja visto antes de qualquer coisa ser desenhada de novo.
+  de cima a partir dos frames finalizados, para que um frame que pula seja visto antes de qualquer coisa ser desenhada de novo. Um conjunto
+  em pixel art também pode ser corrigido assim, com todos os frames em sequência no editor: `pixeledit.py hero.json --join walk,ready,slash,recover --facing south-east`.
 - **Um frame errado? Desenhe só ele.** `charpipe.py frame hero.json --only slash --facing south-east --frame 5 --yes` (~$0.08) desenha
   de novo só aquele frame; `"frame_words"` na ação diz ao modelo de imagem o que o render daquele frame não consegue. O frame 5 acima tinha o
   punho esquerdo flutuando sobre o guarda-chuva cinco vezes seguidas; quando foi dito que a mão fica quase toda escondida atrás da cabeça dela, saiu certo.
@@ -287,6 +289,8 @@ Cerca de $0.075 por folha: uma caminhada nas oito direções são 18 folhas (cer
   no navegador: borracha mágica numa mancha de branco que sobrou, lápis, trocar uma cor, mover uma seleção, copiar um rosto bom para os outros
   frames. Adicione qualquer cor à paleta; e os próprios frames podem ser copiados (um intermediário para desenhar por cima - 8 frames viraram 9),
   apagados e movidos: a sombra e os dados do jogo acompanham. As edições são guardadas e aplicadas de novo em todo build seguinte.
+  Animações que tocam uma depois da outra podem ser abertas como uma só, para ver o loop inteiro e corrigir onde pula:
+  `pixeledit.py hero.json --join walk,ready,slash,recover --facing south-east`.
 
 ![o editor de pixel: um frame numa grade, o frame anterior mostrado bem fraco, as ferramentas, e quanto foi feito pela IA e à mão](docs/pixel-edit.png)
 
@@ -299,10 +303,13 @@ Quanto sobra para a mão: muito pouco. Nos 40 frames do arremesso, cerca de 6 mi
 trabalho manual foi a borracha mágica - um clique em cada pontinho de branco que sobrou, em 10 dos 40 frames (131 pixels, 0.15 % dos
 sprites). Nenhum rosto foi tocado: estão como o pipeline os fez. O build mostra esses números toda vez.
 
-**Um conjunto mais difícil, e o que a mão fez.** Pixel art precisa sim de alguns ajustes à mão - poucos pixels por frame, do tipo que qualquer um faz
-com uma borracha e um lápis, sem saber desenhar. O mesmo loop daquele em "Juntando duas animações", em pixel art: ela anda com o guarda-chuva, desce para a postura, golpeia, volta a subir e segue andando. São quatro animações juntas, 23 frames. Todo frame foi tocado: 1,196 pixels de 51,442 (2.3 %), cerca de 60
-minutos no editor por alguém que não desenha - branco que sobrou, a ponta e a borda do guarda-chuva deixadas iguais de frame para
-frame. Não corrigido: em dois frames da caminhada o guarda-chuva está desenhado um pouco fora do ângulo e do comprimento do 3D.
+**Um conjunto mais difícil, e o que a mão fez.** Se o personagem segura algo (uma arma, um guarda-chuva), os detalhes disso precisam
+de um pequeno ajuste à mão: poucos pixels por frame, com uma borracha e um lápis, sem saber desenhar. O mesmo loop daquele em "Juntando
+duas animações", em pixel art: ela anda com o guarda-chuva, desce para a postura, golpeia, volta a subir e segue andando; quatro animações
+juntas, 23 frames. Só o guarda-chuva foi ajustado à mão: a ponta e a borda deixadas iguais de frame para frame. O personagem não; só foram
+apagados alguns pontinhos brancos que sobraram. No total, 1,196 pixels de 51,442 (2.3 %), por alguém que não desenha, em poucos minutos. O que deixou rápido, e o que mais importa em pixel art: ver os 23 frames em sequência, tocando, não um por um; corrigir é fazer
+com que nenhuma parte mude muitos pixels de um frame para o próximo. Não corrigido: em
+dois frames da caminhada o guarda-chuva está desenhado um pouco fora do ângulo e do comprimento do 3D.
 
 
 - **O editor mostra onde o 3D tem as coisas** (tecla `4`): o objeto segurado em vermelho e o contorno do corpo em azul, sobre o frame que você

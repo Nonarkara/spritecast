@@ -2,6 +2,11 @@
 the frame where it came out best. What pixelart.py cannot settle by rule, the user's eye and a pencil can in a minute.
 
     python pixeledit.py CHAR.json [--px 96] [--port 8766] [--no-open]     free: a local page; it saves as you draw
+    python pixeledit.py CHAR.json --join walk,ready,slash,recover --facing south-east
+                                        the animations a game plays one after another, as ONE: played through, any frame fixed where
+                                        it stands. In pixel art a fix is no part changing a lot from one frame to the next - and the
+                                        jumps are as often across a join (the walk's last frame into the stance) as inside one.
+                                        Each edit goes to its own animation's frame (the same touch file), as if made there
 
 The page is on THIS machine (127.0.0.1). A user who works on it from another computer (an editor's remote session, ssh) forwards the
 port - VS Code: the Ports panel, "Forward a Port", 8766 - or, if they ask, `--host <an address of their private network>`.
@@ -84,7 +89,7 @@ def apply_frames(out, base, t):
     (out / 'pixel.json').write_text(json.dumps(m, indent=1)); return True
 
 
-def serve(spec, px, port, open_, host='127.0.0.1'):
+def serve(spec, px, port, open_, host='127.0.0.1', join=None, facing=None):
     s = json.loads(Path(spec).read_text(encoding='utf-8')); d = Path(spec).resolve().parent / s['name']; out = d / f'out-pixel{px}'; base = d / 'pixel' / f'base-{px}'
     tp = d / 'pixel' / f'touch-{px}.json'; tt = d / 'pixel' / f'touch-{px}-time.json'; cp = d / 'pixel' / f'colours-{px}.json'          # (cp: colours the user added to the page's palette)      # (the time at it, per animation: the editor counts it)
     prop = not (out / 'pixel.json').exists() and (d / 'out-pixel/pixel.json').exists()          # a PROP made by proppixel.py: its views are the frames of one strip, "views"
@@ -92,6 +97,14 @@ def serve(spec, px, port, open_, host='127.0.0.1'):
     if not (out / 'pixel.json').exists() or not base.is_dir(): sys.exit(f'pixeledit: no pixel sprites at {px} px yet - run pixelart.py (a character) or proppixel.py (a prop) first')
     meta = json.loads((out / 'pixel.json').read_text()); fw, fh = meta['frame']; origin = meta.get('origin', [0, 0]); names = [n for n in meta['animations'] if (base / f'{n}.png').exists()]
     lock = threading.Lock(); nbase = {n: Image.open(base / f'{n}.png').width // fw for n in names}; can_add = not prop and (base / 'pixel.json').exists()
+    J = None          # --join: the joined animation's frames, each (its animation, its key there) - the only animation the page then shows
+    if join:
+        if prop: sys.exit('pixeledit: --join is for a character')
+        parts = [a if a in names else f'{a}-{facing}' for a in join.split(',')]
+        miss = [a for a in parts if a not in names]
+        if miss: sys.exit(f"pixeledit: --join: no {', '.join(miss)} at {px} px (there are: {', '.join(names)}){'' if facing else ' - give --facing'}")
+        t0 = load_touch(tp); J = [(a, k) for a in parts for k in order_of(t0, a, nbase[a])]
+        JN = '+'.join(a.rsplit('-' + facing, 1)[0] if facing else a for a in parts) + (f'-{facing}' if facing else ''); can_add = False          # (walk+ready+slash+recover-south-east: plain in a URL)
 
     def write(name):          # the strip in out-pixel<px>/ = the base strip + this animation's edits
         Image.fromarray(strip_of(base / f'{name}.png', load_touch(tp), name, fw, origin)).save(out / f'{name}.png')
@@ -150,6 +163,19 @@ def serve(spec, px, port, open_, host='127.0.0.1'):
             u = self.path.split('?')[0]
             if u == '/': return self.send(200, (HERE / 'pixeledit.html').read_bytes(), 'text/html; charset=utf-8')
             if u == '/favicon.ico': return self.send(204, b'', 'image/x-icon')
+            if u == '/data' and J:
+                t = load_touch(tp); sec = load_touch(tt)
+                return self.send(200, json.dumps({'name': d.name, 'px': px, 'frame': [fw, fh], 'origin': origin, 'review': {}, 'joined': True,
+                                                  'colours': load_touch(cp).get('colours', []), 'can_add': False,
+                                                  'animations': [{'name': JN, 'frames': len(J), 'order': list(range(len(J))), 'added': {}, 'made': {}, 'seconds': sec.get(JN, 0),
+                                                                  'edits': {str(j): t[a][str(k)] for j, (a, k) in enumerate(J) if str(k) in t.get(a, {})}}]}).encode(), 'application/json')
+            if J and u == f'/base/{JN}.png':
+                strips = {a: np.asarray(Image.open(base / f'{a}.png').convert('RGBA')) for a in {a for a, _ in J}}; t = load_touch(tp)
+                fr = [strips[a][:, src_of(t, a, k) * fw:(src_of(t, a, k) + 1) * fw] for a, k in J]; b = io.BytesIO(); Image.fromarray(np.concatenate(fr, 1)).save(b, 'PNG')
+                return self.send(200, b.getvalue(), 'image/png')
+            if J and (u.startswith('/ref/') or u.startswith('/refparts/')) and u.endswith('.png'):          # (a joined frame's 3D: its own animation's)
+                j = int(u.rsplit('/', 1)[1][:-4]); a, k = J[j]; i = src_of(load_touch(tp), a, k)
+                return self.send(200, (ref_parts if u.startswith('/refparts/') else ref)(a, i), 'image/png')
             if u == '/data':
                 t = load_touch(tp); m = json.loads((out / 'pixel.json').read_text()).get('made', {}); sec = load_touch(tt)
                 return self.send(200, json.dumps({'name': d.name, 'px': px, 'frame': [fw, fh], 'origin': origin, 'review': meta.get('review', {}),
@@ -166,6 +192,10 @@ def serve(spec, px, port, open_, host='127.0.0.1'):
             if self.path == '/colours':          # the colours added to the palette, kept for the next time
                 cs = [[int(v) & 255 for v in c[:3]] for c in j.get('colours', []) if len(c) >= 3][:64]; cp.write_text(json.dumps({'colours': cs})); return self.send(200, b'{"ok":true}', 'application/json')
             name, k = j.get('name'), str(j.get('frame'))
+            if J:          # a joined frame's edit is its own animation's frame's (the time spent counted for the joined view)
+                if name != JN or self.path != '/save' or not k.isdigit() or int(k) >= len(J): return self.send(400, b'joined: only /save of one of its frames', 'text/plain')
+                if j.get('seconds'): sec = load_touch(tt); sec[JN] = max(int(j['seconds']), sec.get(JN, 0)); tt.write_text(json.dumps(sec)); j['seconds'] = 0
+                name, k = J[int(k)][0], str(J[int(k)][1])
             if name not in names: return self.send(400, b'unknown animation', 'text/plain')
             if self.path == '/frames':          # the animation's frames as they now are: the pipeline's all there, each once; the added ones by id, each a copy of one of them
                 o, ad = j.get('order', []), {str(q): int(v) for q, v in j.get('added', {}).items()}
@@ -193,7 +223,7 @@ def serve(spec, px, port, open_, host='127.0.0.1'):
             self.send(200, b'{"ok":true}', 'application/json')
 
     srv = http.server.ThreadingHTTPServer((host, port), H); url = f'http://{host}:{srv.server_address[1]}/'
-    print(f'pixeledit: {url}  ({d.name}, {px} px, {len(names)} animations) - draw; it saves as you go. Ctrl+C here when done.', flush=True)
+    print(f'pixeledit: {url}  ({d.name}, {px} px, ' + (f'{JN}: {len(J)} frames joined' if J else f'{len(names)} animations') + ') - draw; it saves as you go. Ctrl+C here when done.', flush=True)
     if open_: threading.Timer(0.5, lambda: webbrowser.open(url)).start()
     try: srv.serve_forever()
     except KeyboardInterrupt: print('\npixeledit: closed')
@@ -203,4 +233,6 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser(); ap.add_argument('spec'); ap.add_argument('--px', type=int, default=96); ap.add_argument('--port', type=int, default=8766)
     ap.add_argument('--no-open', action='store_true')
     ap.add_argument('--host', default='127.0.0.1', help='the address to listen on. 127.0.0.1 (this machine only) unless the user works on this machine from another one and asks: then an address of a private network they are on - anyone who can reach it can edit')
-    a = ap.parse_args(); serve(a.spec, a.px, a.port, not a.no_open, a.host)
+    ap.add_argument('--join', help='animations to see and fix as one, in the order a game plays them: walk,ready,slash,recover (with --facing)')
+    ap.add_argument('--facing', help='--join: the facing (south-east ...)')
+    a = ap.parse_args(); serve(a.spec, a.px, a.port, not a.no_open, a.host, a.join, a.facing)

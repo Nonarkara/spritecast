@@ -173,7 +173,9 @@ the head): show the user `review.png` (each marked frame beside its guide), not 
 `--redraw` says what drawing those sheets again would cost, `--redraw --yes` does it and keeps the better; `--again <sheet>` redraws one sheet. **Fewer colours or the game's own palette**: `--colours N` / `--palette NAME|FILE` (free, also on `proppixel.py`; `--palette list` shows the 15 that come with the skill; reference/pixel.md). Out: `<clip>-<facing>.png` strips, `shadows/`
 (each frame's 3D shadow), `pixel.json`. **By hand, for what is left** (white between an arm and the body, a face in one frame): `PYTHON pixeledit.py CHAR.json` - a local page
 (a server: run it in the background, give the address) to erase a patch, draw, or copy a good face into another frame; the edits are
-kept and laid on again by every later `pixelart.py` run. **Something thrown** (a snowball): `"hold": {"kind": "snowball", "color": "#bcd6f2",
+kept and laid on again by every later `pixelart.py` run. Animations a game plays one after another (walk > ready > slash > recover):
+`pixeledit.py CHAR.json --join walk,ready,slash,recover --facing south-east` shows them as one, to be played through and fixed where
+a part jumps - each edit goes to its own animation's frame. **Something thrown** (a snowball): `"hold": {"kind": "snowball", "color": "#bcd6f2",
 "final": "#ffffff", "until": "auto"}` on the action - drawn pale blue so that it shows on white paper, white in the end, let go when
 the hand is fastest; the folder then has the thing's own sprites and `release` in `pixel.json` (frame, point, direction, speed), and
 `<clip>-<facing>-flying.gif` to show. **An animation the rig lacks** (a throw): `PYTHON addclip.py CHAR.json Throw.fbx throw` puts a

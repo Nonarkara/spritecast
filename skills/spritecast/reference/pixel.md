@@ -101,8 +101,11 @@ under 0.75 with the pose right is the user's call: show it and ask.
 Pixel art needs some fixing by hand, and the user should be told so before, not after: a few pixels a frame with the eraser and the
 pencil, which someone who does not draw can do. Two measured cases on the rain girl at 96 px: the throw, 40 frames - 131 pixels in 10
 frames (0.15 %), only left-over white; the walk-with-umbrella → stance → slash → back up, 23 frames - 1,196 pixels in all 23 frames
-(2.3 %), about 60 minutes, by the user: left-over white, and a held umbrella's tip and edge made the same from frame to frame. A long
-thin held thing is where most of it goes. Offer the editor every time, with "3D shapes over" on for a set that holds something.
+(2.3 %), a few minutes' work by the user: a held umbrella's tip and edge made the same from frame to frame (the only real fixing - the
+character itself was not touched beyond a few left-over white specks). A long
+thin held thing is where most of it goes. What made that one quick: all 23 frames looked at in a row, playing - in pixel art a fix
+is making sure no part's pixels change a lot from one frame to the next (an umbrella tip that jumps, an edge that grows and
+shrinks). Tell the user to play the animation (Enter) and look for such a part, not to go through frames one by one. Offer the editor every time, with "3D shapes over" on for a set that holds something.
 
 ## A swing's effect in pixel art
 An action with `"trail"` (reference/character.md, "A swing's effect") has its effect in the pixel set too: `pixelart.py` reads the same
@@ -122,6 +125,13 @@ Pixel art is not all to be had by rule: a patch of paper left where an arm cross
 frame than in the next. `PYTHON pixeledit.py CHAR.json [--px 96] [--port 8766]` (free) serves a local page with every animation,
 frame by frame, big, on a grid. **It is a server: run it in the background** (`--no-open` when no browser should open on this
 machine), give the user the address, stop it when they say they are done. It saves as they draw.
+
+**Animations that play one after another, as one**: `pixeledit.py CHAR.json --join walk,ready,slash,recover --facing south-east`
+(free) - the page shows ONLY that: their frames end to end, in each one's own order, played through with Enter. A part that jumps
+is as often across a join (the walk's last frame into the stance) as inside one, and one animation at a time never shows it. Each
+edit goes to its own animation's frame - the same touch file, the same strips written again - so it is as if made there; the 3D
+views and shapes are each frame's own. Frames are not copied, deleted or moved here (open the animation by itself for that).
+Offer it whenever a set has more than one animation that a game plays in a row.
 
 | tool | does |
 |---|---|

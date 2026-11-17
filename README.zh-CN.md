@@ -4,6 +4,8 @@
 一个用于 Claude Code 的等距精灵图生成器：8 方向行走、动作和像素画，<br>
 都按你游戏的相机角度生成，每一帧下面都有 3D 阴影，还有能摆在旁边的道具。</p>
 
+<p align="center"><a href="https://github.com/Sunghwan0112/spritecast/stargazers"><img src="https://img.shields.io/github/stars/Sunghwan0112/spritecast?style=social" alt="GitHub stars"></a></p>
+
 <p align="center">
 <a href="#能做什么">能做什么</a> ·
 <a href="#行走角色">角色</a> ·

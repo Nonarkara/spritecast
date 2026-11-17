@@ -4,6 +4,8 @@
 Claude Code용 아이소메트릭 스프라이트 생성기: 8방향 걷기, 동작, 픽셀아트를<br>
 내 게임의 카메라 각도로, 프레임마다 3D 그림자와 함께 만들어요. 옆에 놓을 소품도요.</p>
 
+<p align="center"><a href="https://github.com/Sunghwan0112/spritecast/stargazers"><img src="https://img.shields.io/github/stars/Sunghwan0112/spritecast?style=social" alt="GitHub stars"></a></p>
+
 <p align="center">
 <a href="#만들-수-있는-것">만들 수 있는 것</a> ·
 <a href="#걷는-캐릭터">캐릭터</a> ·

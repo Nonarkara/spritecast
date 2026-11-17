@@ -4,6 +4,8 @@
 An isometric sprite generator for Claude Code: 8-direction walks, actions and pixel art<br>
 at your game's camera angle, with a 3D shadow under every frame - and the props to stand beside them.</p>
 
+<p align="center"><a href="https://github.com/Sunghwan0112/spritecast/stargazers"><img src="https://img.shields.io/github/stars/Sunghwan0112/spritecast?style=social" alt="GitHub stars"></a></p>
+
 <p align="center">
 <a href="#what-you-can-make">What you can make</a> ·
 <a href="#walking-characters">Characters</a> ·

@@ -4,6 +4,8 @@
 Um gerador de sprites isométricos para o Claude Code: caminhadas em 8 direções, ações e pixel art<br>
 no ângulo de câmera do seu jogo, com uma sombra 3D sob cada frame - e os props para ficar ao lado deles.</p>
 
+<p align="center"><a href="https://github.com/Sunghwan0112/spritecast/stargazers"><img src="https://img.shields.io/github/stars/Sunghwan0112/spritecast?style=social" alt="GitHub stars"></a></p>
+
 <p align="center">
 <a href="#o-que-você-pode-fazer">O que você pode fazer</a> ·
 <a href="#personagens-que-andam">Personagens</a> ·

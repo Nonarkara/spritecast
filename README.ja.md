@@ -4,6 +4,8 @@
 Claude Code 用のアイソメトリック・スプライトジェネレーターです。8方向の歩行、アクション、ピクセルアートを<br>
 ゲームのカメラアングルで作り、すべてのフレームの下に3Dの影を付けます。その横に置くプロップも作れます。</p>
 
+<p align="center"><a href="https://github.com/Sunghwan0112/spritecast/stargazers"><img src="https://img.shields.io/github/stars/Sunghwan0112/spritecast?style=social" alt="GitHub stars"></a></p>
+
 <p align="center">
 <a href="#作れるもの">作れるもの</a> ·
 <a href="#歩くキャラクター">キャラクター</a> ·

@@ -11,7 +11,7 @@ Claude Code용 아이소메트릭 스프라이트 생성기: 8방향 걷기, 동
 <a href="#소품과-배경">소품</a> ·
 <a href="#설치">설치</a> ·
 <a href="#자주-묻는-질문">자주 묻는 질문</a> ·
-<a href="README.md">English</a>
+<a href="README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a>
 </p>
 
 ![GPT만으로: 한 방향, 늘 같은 다리가 앞에, 그림자 없음. SpriteCast: 같은 캐릭터가 게임 바닥 위에서 8방향으로 걷고 프레임마다 그림자가 있음. 같은 3D로 만든 동작들, 물을 뿌리는 휘두르기. 픽셀아트로도 나옴](docs/hero.ko.gif)

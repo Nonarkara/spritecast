@@ -18,6 +18,8 @@ Changes made because of a report or a request are marked *(feedback)*.
 - The README's first picture: the "GPT alone" side smaller and stamped, each of its failures with what SpriteCast does instead; on
   the SpriteCast side a winter night behind the floor, a row of actions from the same 3D (run, jump, the swing with its water) and
   the pixel swing with its water.
+- The README in four more languages: 简体中文 (`README.zh-CN.md`), 日本語 (`README.ja.md`), Español (`README.es.md`) and Português
+  (`README.pt-BR.md`), with the English pictures. Each README links to all the others.
 - The README's banner: the swing at 0.85 of its speed, the letters hop where the snowball and the water hit, the wet ones drip, and a
   winter night stands behind it all.
 

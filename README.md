@@ -11,7 +11,7 @@ at your game's camera angle, with a 3D shadow under every frame - and the props 
 <a href="#props-and-scenery">Props</a> ·
 <a href="#install">Install</a> ·
 <a href="#faq">FAQ</a> ·
-<a href="README.ko.md">한국어</a>
+<a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a>
 </p>
 
 ![GPT alone: one direction, the same leg always in front, no shadow. SpriteCast: the same character walking in eight directions on the game's floor, each with its shadow; a row of actions from the same 3D, the swing throwing water; and as pixel art](docs/hero.gif)

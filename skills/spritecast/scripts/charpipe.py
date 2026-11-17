@@ -648,9 +648,10 @@ def loop_gif(s, d, names, dr, scale=0.42):
     x0, y0 = min(b[0] for b in boxes) - 30, min(b[1] for b in boxes) - 30; x1, y1 = max(b[2] for b in boxes) + 30, max(b[3] for b in boxes) + 30
     x0, y0, x1, y1 = max(0, x0), max(0, y0), min(S, x1), min(S, y1)
     out = [c.crop((x0, y0, x1, y1)).convert('RGB').resize((round((x1 - x0) * scale), round((y1 - y0) * scale)), Image.LANCZOS) for c, _ in pics]
-    pal = Image.fromarray(np.concatenate([np.asarray(o.resize((o.width // 2, o.height // 2))) for o in out], 1)).quantize(250, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)   # (from every picture: one effect's colours missed by a few sampled ones came out grey)
+    # each picture its own 256 colours: one palette for all of them (an effect's blues among it) left a face a few skin tones, and the
+    # GIF showed blotches on it that the drawings do not have - to be taken for the image model's, and a frame drawn again for nothing
     f = d / f'out/loop-{dr}.gif'; f.parent.mkdir(exist_ok=True)
-    q_ = [o.quantize(palette=pal, dither=Image.Dither.NONE) for o in out]
+    q_ = [o.quantize(256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE) for o in out]
     q_[0].save(f, save_all=True, append_images=q_[1:], duration=[ms for _, ms in pics], loop=0, optimize=True)
     print(f'loop: {f} - {" > ".join(names)}, {len(seq)} pictures, {sum(ms for _, ms in pics) / 1000:.1f} s round - look at the joins (free)')
 

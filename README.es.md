@@ -14,11 +14,11 @@ con el ángulo de cámara de tu juego, con una sombra 3D bajo cada fotograma, y 
 <a href="README.md">English</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ja.md">日本語</a> · <a href="README.pt-BR.md">Português</a>
 </p>
 
-![GPT solo: una dirección, siempre la misma pierna delante, sin sombra. SpriteCast: el mismo personaje caminando en ocho direcciones sobre el suelo del juego, cada una con su sombra; una fila de acciones a partir del mismo 3D, el golpe lanzando agua; y en pixel art](docs/hero.gif)
+![GPT solo: una dirección, siempre la misma pierna delante, sin sombra. SpriteCast: el mismo personaje caminando en ocho direcciones sobre el suelo del juego, cada una con su sombra; una fila de acciones a partir del mismo 3D, el golpe lanzando agua; y en pixel art](docs/hero.es.gif)
 
 <p align="center"><i>El mismo modelo de imagen, la misma hoja de personaje. Izquierda: lo que salió al pedirle a GPT una caminata. Derecha: lo que aporta el 3D.</i></p>
 
-![un carrito de ramen callejero como modelo 3D desde cuatro lados, y esos mismos cuatro lados como sprites en pixel art junto al pequeño personaje en píxeles](docs/pixel-props.png)
+![un carrito de ramen callejero como modelo 3D desde cuatro lados, y esos mismos cuatro lados como sprites en pixel art junto al pequeño personaje en píxeles](docs/pixel-props.es.png)
 
 <p align="center"><i>Y cosas, no solo personas: cualquier objeto en pixel art, desde cualquier lado, a la escala del personaje. <a href="#props-en-pixel-art-cualquier-objeto-desde-cualquier-lado">Cómo</a>.</i></p>
 
@@ -97,7 +97,7 @@ volver a dibujar, nunca se fuerza para que encaje. Los props funcionan igual, co
 
 ## Personajes que caminan
 
-![una ilustración → 3D → fotogramas dibujados → una caminata en 8 orientaciones](docs/character.png)
+![una ilustración → 3D → fotogramas dibujados → una caminata en 8 orientaciones](docs/character.es.png)
 
 Dale una ilustración de un personaje (de frente, erguido, sin pose) y obtienes una caminata en 8 orientaciones (8 fotogramas cada una) y 8 vistas en reposo, con el aspecto de esa
 ilustración. Un modelo de imagen no puede mantener un cuerpo y una pose de fotograma a fotograma, así que el movimiento sale del 3D:
@@ -177,7 +177,7 @@ Esos fotogramas se te listan para que los mires; guárdalos o vuelve a dibujarlo
 `"hold": {"kind": "watergun", "hand": "left"}`, y el personaje lo lleva durante la caminata, las vistas en reposo y cada acción.
 Abajo, una pistola de agua en la mano izquierda: la guía 3D arriba, los fotogramas dibujados debajo.
 
-![una pistola de agua llevada en la mano izquierda: caminando al oeste, caminando al este y corriendo, la guía 3D encima de los fotogramas dibujados](docs/carry-left-hand.gif)
+![una pistola de agua llevada en la mano izquierda: caminando al oeste, caminando al este y corriendo, la guía 3D encima de los fotogramas dibujados](docs/carry-left-hand.es.gif)
 
 - **Se queda en esa mano.** Un personaje con algo en una mano no es igual por ambos lados, así que ningún fotograma se hace nunca
   volteando otro: al voltearlo, el objeto cambiaría de mano. (`"mirror": "never"` pide lo mismo para cualquier personaje que no sea
@@ -265,7 +265,7 @@ Para un juego dibujado en píxeles (un beat 'em up de scroll lateral, uno de luc
 de alto: un color por píxel, una paleta de unos 40, un contorno oscuro, sin desenfoque, y la sombra 3D de cada fotograma. No es un redimensionado de los fotogramas
 pintados: el orden es al revés.
 
-![un fotograma de cuatro maneras: el render 3D, la guía pixelada, el dibujo del modelo, el sprite](docs/pixel-steps.png)
+![un fotograma de cuatro maneras: el render 3D, la guía pixelada, el dibujo del modelo, el sprite](docs/pixel-steps.es.png)
 
 El render 3D se pixela para formar una guía, el modelo de imagen la vuelve a dibujar como pixel art, y el dibujo se **lee de nuevo sobre la cuadrícula en la que
 el modelo lo dibujó** (la cabeza con líneas de cuadrícula propias, para que sobrevivan los ojos y la boca) y luego el render lo dimensiona y lo coloca.
@@ -317,7 +317,7 @@ otro. Sin corregir: en dos fotogramas de la caminata el paraguas está dibujado 
 otra paleta. Los props aceptan las mismas dos opciones. Hasta 16 el personaje aguanta bien; a 8 los colores cercanos se funden (sus piernas azul marino
 se vuelven negras), y una paleta sin nada parecido a uno de sus colores cambiará ese color: mira el resultado antes de quedártelo.
 
-![los mismos tres sprites con los 43 colores por defecto, con --colours 32, 16 y 8, y en la paleta PICO-8 de 16 colores](docs/pixel-colours.png)
+![los mismos tres sprites con los 43 colores por defecto, con --colours 32, 16 y 8, y en la paleta PICO-8 de 16 colores](docs/pixel-colours.es.png)
 
 Las paletas que vienen incluidas, sobre los mismos dos sprites (un abrigo amarillo necesita un amarillo en la paleta; `c64`, `gameboy`,
 `slso8` y `sweetie16` no tienen ninguno):
@@ -339,7 +339,7 @@ Los dos juegos están en [`examples/rain_chibi`](examples/rain_chibi): el diseñ
 spec, `pixel64/` (caminata y lanzamiento en ocho orientaciones, 128 fotogramas, cada uno con su sombra; no se tocó ningún píxel a mano) y `pixel32/` generado a partir de él. Su lanzamiento es un clip de Mixamo añadido con `addclip.py --clear-head 55`; el clip y el
 rig no están en el repo.
 
-![el mismo personaje pequeño de cinco maneras: dibujado a 64 px, un juego de 32 px generado a partir de él, y tres formas de pedirle 32 px al modelo de imagen](docs/pixel-sizes.png)
+![el mismo personaje pequeño de cinco maneras: dibujado a 64 px, un juego de 32 px generado a partir de él, y tres formas de pedirle 32 px al modelo de imagen](docs/pixel-sizes.es.png)
 
 **¿Por qué no pedir 32 px?** El modelo de imagen (GPT) no hace bien pixel art pequeño por debajo de 64. Dibuja sus "píxeles" a un tamaño
 propio (al pedirle cuadros de 8 px los dibujó de entre 7.4 y 10.8) y con 32 cuadros, un cuadro desviado es un ojo perdido. Arriba: la fila superior
@@ -351,7 +351,7 @@ tajo con paraguas como tiras, sus sombras, la bola de nieve con su forma en vuel
 
 ### Props en pixel art: cualquier objeto, desde cualquier lado
 
-![un carrito de ramen callejero como modelo 3D desde cuatro lados, y esos mismos cuatro lados como sprites en pixel art](docs/pixel-props.png)
+![un carrito de ramen callejero como modelo 3D desde cuatro lados, y esos mismos cuatro lados como sprites en pixel art](docs/pixel-props.es.png)
 
 Lo mismo que con un personaje, pero para una cosa: su guía 3D se pixela, el modelo de imagen la vuelve a dibujar como pixel art sobre la misma cuadrícula,
 y el dibujo se lee de nuevo sobre esa cuadrícula y se lleva al tamaño de la guía. El ángulo es el de la cámara, así que una cosa girada de cuatro maneras son
@@ -382,9 +382,9 @@ los fotogramas, con las mismas sombras 3D y anclas. El modelo de imagen solo dib
 (75 créditos de Tripo, un animal 30): dos OK, y listo en cuanto termina `3d`. Lo que pierdes es nitidez: sin líneas dibujadas, una cara más simple,
 la textura del modelo tal como vino (pelaje y pliegues más borrosos).
 
-![la misma chica y el mismo gato caminando: solo los renders 3D frente a los fotogramas dibujados](docs/render-vs-drawn.gif)
+![la misma chica y el mismo gato caminando: solo los renders 3D frente a los fotogramas dibujados](docs/render-vs-drawn.es.gif)
 
-![primer plano a los píxeles propios de las tiras: solo 3D frente a dibujado](docs/render-vs-drawn-zoom.png)
+![primer plano a los píxeles propios de las tiras: solo 3D frente a dibujado](docs/render-vs-drawn-zoom.es.png)
 
 ## Sentarse
 

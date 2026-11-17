@@ -14,11 +14,11 @@
 <a href="README.md">English</a> · <a href="README.ko.md">한국어</a> · <a href="README.ja.md">日本語</a> · <a href="README.es.md">Español</a> · <a href="README.pt-BR.md">Português</a>
 </p>
 
-![只用 GPT：只有一个方向，总是同一条腿在前，没有阴影。SpriteCast：同一个角色在游戏地面上朝八个方向行走，每个方向都有阴影；一排来自同一个 3D 模型的动作，挥击时甩出水花；以及像素画版本](docs/hero.gif)
+![只用 GPT：只有一个方向，总是同一条腿在前，没有阴影。SpriteCast：同一个角色在游戏地面上朝八个方向行走，每个方向都有阴影；一排来自同一个 3D 模型的动作，挥击时甩出水花；以及像素画版本](docs/hero.zh-CN.gif)
 
 <p align="center"><i>同一个图像模型，同一张角色设定图。左：让 GPT 画行走，原样输出的结果。右：3D 带来的东西。</i></p>
 
-![一辆拉面小摊车的 3D 模型的四个面，以及同样四个面的像素画精灵图，旁边是小小的像素角色](docs/pixel-props.png)
+![一辆拉面小摊车的 3D 模型的四个面，以及同样四个面的像素画精灵图，旁边是小小的像素角色](docs/pixel-props.zh-CN.png)
 
 <p align="center"><i>不只是人，物体也行：任何物体都能做成像素画，任意一面，与角色同一比例。<a href="#像素画道具任何物体任何一面">做法</a>。</i></p>
 
@@ -97,7 +97,7 @@ claude plugin install spritecast@spritecast
 
 ## 行走角色
 
-![一张插画 → 3D → 绘制的帧 → 8 个朝向的行走](docs/character.png)
+![一张插画 → 3D → 绘制的帧 → 8 个朝向的行走](docs/character.zh-CN.png)
 
 给它一张角色插画（面朝前方、站直、不摆姿势），你会得到 8 个朝向的行走（每个 8 帧）和 8 张站立图，画风与
 那张插画一致。图像模型无法在帧与帧之间保持身体和姿势，所以动作来自 3D：
@@ -177,7 +177,7 @@ hurt 和 turn），每个动作都像行走一样在 8 个朝向上渲染、绘�
 `"hold": {"kind": "watergun", "hand": "left"}`，角色在行走、站立图和每个动作中都会拿着它。
 下面是左手拿着水枪：上面是 3D 引导图，下面是绘制出的帧。
 
-![左手拿着水枪：向西走、向东走和跑，3D 引导图在绘制帧的上方](docs/carry-left-hand.gif)
+![左手拿着水枪：向西走、向东走和跑，3D 引导图在绘制帧的上方](docs/carry-left-hand.zh-CN.gif)
 
 - **它一直在那只手里。** 一只手拿着东西的角色左右并不对称，所以任何帧都不会通过
   翻转另一帧得到，翻转的话东西就换手了。（`"mirror": "never"` 让任何不
@@ -265,7 +265,7 @@ hurt 和 turn），每个动作都像行走一样在 8 个朝向上渲染、绘�
 每个像素一种颜色，调色板约 40 色，深色描边，没有模糊，并带有每帧的 3D 阴影。不是把绘制好的
 帧缩小：顺序正好相反。
 
-![一帧的四个阶段：3D 渲染图、像素化的引导图、模型的绘制、精灵图](docs/pixel-steps.png)
+![一帧的四个阶段：3D 渲染图、像素化的引导图、模型的绘制、精灵图](docs/pixel-steps.zh-CN.png)
 
 3D 渲染图被像素化成引导图，图像模型把它重绘成像素画，然后**按模型绘制时用的网格读回**
 这张画，头部用它自己的网格线，这样眼睛和嘴巴能保留下来，再根据渲染图确定大小和位置。
@@ -317,7 +317,7 @@ $PYTHON skills/spritecast/scripts/pixelart.py hero.json --clips walk,throw --yes
 另一个调色板读取同一批绘制。道具也支持这两个选项。降到 16 色时角色仍然很好；到 8 色时相近的颜色会合并（她的藏青色腿
 变成黑色），而调色板中如果没有与她某种颜色接近的颜色，那种颜色就会变掉，保留之前先看看结果。
 
-![同样的三个精灵图，分别为默认 43 色、--colours 32、16 和 8，以及 16 色的 PICO-8 调色板](docs/pixel-colours.png)
+![同样的三个精灵图，分别为默认 43 色、--colours 32、16 和 8，以及 16 色的 PICO-8 调色板](docs/pixel-colours.zh-CN.png)
 
 自带的调色板，用同样的两个精灵图展示。黄色外套需要调色板里有黄色（`c64`、`gameboy`、
 `slso8` 和 `sweetie16` 没有）：
@@ -339,7 +339,7 @@ by ENDESGA、Resurrect 64 by Kerrie Lake、SLSO8 by Luis Miguel Maldonado、Swee
 spec、`pixel64/`（八个朝向的行走和投掷，128 帧，每帧带阴影；没有任何像素经过手工修改），以及由它生成的 `pixel32/`。她的投掷是用 `addclip.py --clear-head 55` 套上的 Mixamo 片段；片段和
 骨骼不在仓库里。
 
-![同一个小个子角色的五种做法：以 64 px 绘制、由它生成的 32 px 一套，以及三种直接让图像模型画 32 px 的方式](docs/pixel-sizes.png)
+![同一个小个子角色的五种做法：以 64 px 绘制、由它生成的 32 px 一套，以及三种直接让图像模型画 32 px 的方式](docs/pixel-sizes.zh-CN.png)
 
 **为什么不直接要 32 px？** 图像模型（GPT）在 64 以下画不好小像素画。它按自己的尺寸
 画"像素"，要求 8 px 的格子，它画出来的从 7.4 到 10.8 都有，而在 32 格里差一格就是少一只眼睛。上图：最上面一行
@@ -351,7 +351,7 @@ spec、`pixel64/`（八个朝向的行走和投掷，128 帧，每帧带阴影�
 
 ### 像素画道具：任何物体，任何一面
 
-![一辆拉面小摊车的 3D 模型的四个面，以及同样四个面的像素画精灵图](docs/pixel-props.png)
+![一辆拉面小摊车的 3D 模型的四个面，以及同样四个面的像素画精灵图](docs/pixel-props.zh-CN.png)
 
 对物体的做法与角色相同：它的 3D 引导图被像素化，图像模型在同一网格上把它重绘成像素画，
 然后按那个网格读回这张画，并调整到引导图的大小。角度就是相机的角度，所以一个物体转四个方向就是
@@ -382,9 +382,9 @@ $PYTHON skills/spritecast/scripts/proppixel.py cart.json --yes        # ~$0.08 a
 （75 Tripo 积分，动物 30），两次确认，`3d` 一完成就做完了。代价是清晰度：没有画出来的线条，脸更简单，
 模型的贴图保持原样（毛发和褶皱更模糊）。
 
-![同样的女孩和猫在行走：只用 3D 渲染图对比绘制的帧](docs/render-vs-drawn.gif)
+![同样的女孩和猫在行走：只用 3D 渲染图对比绘制的帧](docs/render-vs-drawn.zh-CN.gif)
 
-![按帧条原始像素放大：只用 3D 对比绘制](docs/render-vs-drawn-zoom.png)
+![按帧条原始像素放大：只用 3D 对比绘制](docs/render-vs-drawn-zoom.zh-CN.png)
 
 ## 坐姿
 

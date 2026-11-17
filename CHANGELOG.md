@@ -3,6 +3,18 @@
 What changed in each version. The version is the one in `.claude-plugin/plugin.json`; Claude Code offers an update when it goes up.
 Changes made because of a report or a request are marked *(feedback)*.
 
+## 0.17.0 — 2026-11-17
+
+- **Four facings: about half the drawing.** `"facings": 4` in a character's spec renders, draws, finishes and packs only the four
+  diagonals (south-east, south-west, north-east, north-west): a walk about $1 instead of $2, in pixel art about $0.7 instead of
+  $1.35 (the rain girl's umbrella walk and swing: 21 pixel sheets, ~$1.57, instead of 48, ~$3.60). South-east is drawn first and the
+  rest follow it. `pixelart.py` draws the spec's facings. *(feedback)*
+- **Every engine still takes eight directions.** `export.py`'s play() - Godot's `<name>.gd`, Phaser's module, and for Unity the new
+  `SpriteCast/SpriteCastFacing.cs` (`SpriteCastFacing.Play(animator, "walk", "east")`) - shows the nearest facing a set has. Between
+  two as near (east: south-east or north-east) the one shown last stays, so walking straight across does not flicker; with none shown
+  yet, the one turned more toward the viewer. Checked in Phaser 3.90 and Godot 4.7 with a four-facing set; the Unity script compiled
+  against Unity 6000.3's own libraries. A set with all eight plays as before.
+
 ## 0.16.1 — 2026-11-17
 
 - **A swing's effect stays with the drawn umbrella.** The effect's extra cells (water has three to each body frame) now sit around

@@ -17,6 +17,7 @@ own rigged model as "rig_glb").
     python charpipe.py model      CHAR.json [--yes]   PAID (~30 Tripo credits; or Meshy with "modeler": "meshy"): the 3D model from the four views
     python charpipe.py rig        CHAR.json [--yes]   PAID (Tripo, ~45 credits): rig + walk + idle, made renderable, feet planted; then render
     python charpipe.py render     CHAR.json           free: the walk (frames × 8 facings) and the idle (8 facings), each with its 3D shadow
+                                                      ("facings": 4 in the spec: the four diagonals only, about half the drawing)
     python charpipe.py redraw     CHAR.json [--yes]   PAID (~$0.11 a sheet): the sheets with a frame fitting its render under `redo_below`
                                                       (0.75) drawn again, up to twice; a facing still under it then settled with its
                                                       mirror pair (the better of the two flipped onto the other; south / north: low
@@ -48,6 +49,10 @@ sys.path.insert(0, str(HERE)); import charlib as CL   # noqa: E402
 import touchup as TU   # noqa: E402
 SPEC_PATH = None
 DIRS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']
+# "facings": 4 in the spec - the four diagonals only (about half the drawing): a game moving in 8 directions shows the nearest of them
+# (export.py writes that map into every engine's files). The first one drawn is the one the rest follow: the front, or with four south-east
+DIAGONALS = ['south-east', 'south-west', 'north-east', 'north-west']
+FRONT = 'south'
 PAIR = {'east': 'west', 'west': 'east', 'north-east': 'north-west', 'north-west': 'north-east', 'south-east': 'south-west', 'south-west': 'south-east'}
 CW, CH = 384, 1024                                                            # a sheet's cell (4 across a 1536×1024 picture)
 PRICE = {'image_in': 8e-6, 'text_in': 5e-6, 'image_out': 30e-6}
@@ -60,6 +65,10 @@ def load(path):
     for k in ('design', 'face', 'photo', 'rig_glb', 'model_glb'):
         if s.get(k): s[k] = str((base / s[k]).resolve())
     s.setdefault('white_shoes', False); os.environ['SPRITECAST_WHITE_SHOES'] = '1' if s.get('white_shoes') else '0'; s.setdefault('head_up', 24); s.setdefault('shoulder_up', 15); s.setdefault('shoulder_wide', 1.05); s.setdefault('pitch', 30); s.setdefault('frames', 8); s.setdefault('neck', 0.16)
+    global DIRS, FRONT
+    s.setdefault('facings', 8)
+    if s['facings'] not in (4, 8): sys.exit('spec: "facings" is 8 (the default) or 4 (the four diagonals: south-east, south-west, north-east, north-west)')
+    DIRS = list(DIAGONALS) if s['facings'] == 4 else ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']; FRONT = DIRS[0]
     s.setdefault('walk', {'clip': 'walk', 't0': 0, 't1': 1.1835}); s.setdefault('idle', {'clip': 'idle', 't': 0})
     s.setdefault('frame_px', 256); s.setdefault('light', 'right'); s.setdefault('shadow', '3d'); s.setdefault('modeler', 'tripo'); s.setdefault('kind', 'person'); s.setdefault('redo_below', 0.75); s.setdefault('draw', True)
     # SOMETHING CARRIED ALL THE TIME ("hold" in the spec itself, not in one action): in the hand through the walk, the standing views and
@@ -73,6 +82,7 @@ def load(path):
         s['mirror'] = 'never'
     s['never_flip'] = s.get('mirror') == 'never'
     m = s.get('mirror', False); m = [] if s['never_flip'] else ['west', 'north-west', 'south-west'] if m is True else (m or [])   # default: every facing drawn
+    m = [x for x in m if x in DIRS]                       # (with four facings there is no west to flip)
     bad = [x for x in m if x not in PAIR or PAIR[x] in m]
     if bad: sys.exit(f'spec: "mirror" lists facings flipped from their pair (east/west, north-east/north-west, south-east/south-west), not both of a pair: {bad}')
     if s['kind'] not in ('person', 'animal'): sys.exit('spec: "kind" is "person" or "animal"')
@@ -89,6 +99,15 @@ def load(path):
     if s['never_flip'] and s['mix']: sys.exit('spec: "mirror": "never" and "mix" (facings mixed with their flipped pair) contradict each other')
     s['mirrored'] = [] if s['never_flip'] else [x for x in mirror_choices(d, m) if not any(x in p for p in s['mix'])]   # (never: what an earlier `redraw` chose is left aside too)
     return s, d
+
+
+def front_words():
+    return 'walking toward the viewer' if FRONT == 'south' else f'walking {FRONT.replace("-", " ")}, toward the viewer and to the right'
+
+
+def idle_groups():
+    """the standing views, 4 to a sheet: the eight in two sheets, the four diagonals in one"""
+    return (list(DIRS),) if len(DIRS) == 4 else (['south', 'south-east', 'south-west', 'east'], ['west', 'north-east', 'north-west', 'north'])
 
 
 def mirror_choices(d, m):
@@ -367,7 +386,7 @@ def render(s, d, only=None):
                 save(pg.evaluate('(a) => window.quadFrames(...a)', [dr, s['frames'], True, True])[0], d / f'render/idle-{dr}.png')
                 save(pg.evaluate('window.shadowShots')[0], d / f'render/idle-{dr}-s.png')
             br.close(); info['px'] = s['render_px']; (d / 'render/render.json').write_text(json.dumps(info, indent=1))
-            return print(f"render: {d / 'render'} - look at them (walk-south-*, walk-east-*: four legs, the head forward, the tail behind) before `draw`")
+            return print(f"render: {d / 'render'} - look at them (walk-{FRONT}-*: four legs, the head forward, the tail behind) before `draw`")
         info = pg.evaluate('([u, p, l]) => window.load(u, p, l)', ['http://spritecast.local/asset/rig.glb', s['pitch'], s['light']])
         w, i = s['walk'], s['idle']
         old = json.loads((d / 'render/render.json').read_text()) if only and (d / 'render/render.json').exists() else {}
@@ -433,10 +452,10 @@ def render(s, d, only=None):
             pg.evaluate('() => { window.wantHeld = false; return window.setTrail(null); }')
             pg.evaluate('() => window.clearHold()'); pg.evaluate('() => window.setCanvas(512)')
             info.setdefault('actions', {})[name] = {'clip': a['clip'], 't0': t0, 't1': t1, 'frames': n, 'loop': a['loop'], 'canvas': canvas}
-            print(f'render: {name} - {n} frames of "{a["clip"]}" {t0:.2f}-{t1:.2f} s, 8 facings')
+            print(f'render: {name} - {n} frames of "{a["clip"]}" {t0:.2f}-{t1:.2f} s, {len(DIRS)} facings')
         br.close()
     info['px'] = s['render_px']; (d / 'render/render.json').write_text(json.dumps(info, indent=1))
-    print(f"render: {d / 'render'}  clips {[c['name'] for c in info['clips']]} - look at them (walk-south-*, walk-east-*) before `draw`")
+    print(f"render: {d / 'render'}  clips {[c['name'] for c in info['clips']]} - look at them (walk-{FRONT}-*) before `draw`")
 
 
 # --- draw -----------------------------------------------------------------------------------------------------------------------------
@@ -551,13 +570,13 @@ def draw_walk(s, d, dr, again, only_groups=None, name='walk'):
     a = dict(s['actions'].get(name) or {'frames': s['frames'], 'words': 'walking', 'hold': s.get('hold')}, _facing=dr)
     paths = [d / f'render/{name}-{dr}-{i}.png' for i in range(a['frames'])]; bb = union(paths); cost = 0
     groups = [list(range(i, min(i + 4, len(paths)))) for i in range(0, len(paths), 4)]
-    front0 = d / 'draw/walk-south-drawn-0.png'
+    front0 = d / f'draw/walk-{FRONT}-drawn-0.png'
     for g, idx in enumerate(groups):
         rs = d / f'draw/{name}-{dr}-renders-{g}.png'; sheet_of([paths[i] for i in idx], bb, rs); out = d / f'draw/{name}-{dr}-drawn-{g}.png'
         if only_groups is not None and g not in only_groups: continue
         if out.exists() and not again: continue
         who = 'animal' if s['kind'] == 'animal' else 'person'
-        extra = ([] if dr == 'south' and name == 'walk' else [(front0, f'the same character already drawn walking toward the viewer: exactly the same {who} - face, ' + ('markings, fur' if who == 'animal' else 'hair') + ', clothes, colours, lines and shading')])
+        extra = ([] if dr == FRONT and name == 'walk' else [(front0, f'the same character already drawn {front_words()}: exactly the same {who} - face, ' + ('markings, fur' if who == 'animal' else 'hair') + ', clothes, colours, lines and shading')])
         extra += ([(d / f'draw/{name}-{dr}-drawn-0.png', 'the first half of this same animation, already drawn: continue it exactly - the same '
                     + who + ', but the legs and the stride of THIS sheet\'s renders (image 1), NOT the first half\'s poses')] if g else [])
         imgs, words = refs_and_words(s, d, extra)
@@ -657,13 +676,13 @@ def loop_gif(s, d, names, dr, scale=0.42):
 
 
 def draw_idle(s, d, again):
-    groups = (['south', 'south-east', 'south-west', 'east'], ['west', 'north-east', 'north-west', 'north']); cost = 0
+    groups = idle_groups(); cost = 0
     bb = union([d / f'render/idle-{x}.png' for x in DIRS])
     for g, ds in enumerate(groups):
         rs = d / f'draw/idle-renders-{g}.png'; sheet_of([d / f'render/idle-{x}.png' for x in ds], bb, rs); out = d / f'draw/idle-drawn-{g}.png'
         if out.exists() and not again: continue
         who = 'animal' if s['kind'] == 'animal' else 'person'
-        extra = [(d / 'draw/walk-south-drawn-0.png', f'the same character already drawn walking toward the viewer: exactly the same {who}')]
+        extra = [(d / f'draw/walk-{FRONT}-drawn-0.png', f'the same character already drawn {front_words()}: exactly the same {who}')]
         extra += ([(d / 'draw/idle-drawn-0.png', "the same character's other standing views, already drawn: exactly the same")] if g else [])
         imgs, words = refs_and_words(s, d, extra)
         turns = '; '.join(f'cell {n + 1}: {head_words(x, who == "animal")}' for n, x in enumerate(ds))
@@ -706,21 +725,21 @@ def sit_render(s, d):
         br.close()
     seats['_'] = {'px': round(512 * CL.PX), 'view_h': 1.25, 'pitch': s['pitch'], 'heights': 'render/sit-<facing>-h.png: (R*256+G)/65535*view_h figure heights'}
     (d / 'render/sit.json').write_text(json.dumps(seats, indent=1))
-    print(f"sit: {d / 'render'}/sit-*.png - seated on nothing, the seat {seats['south']['seatY']:.2f} of the height up; look at them, then `sit --draw`")
+    print(f"sit: {d / 'render'}/sit-*.png - seated on nothing, the seat {seats[FRONT]['seatY']:.2f} of the height up; look at them, then `sit --draw`")
 
 
 def sit_draw(s, d, args):
     """PAID (~$0.22: two sheets of four): the seated renders drawn over like the standing views, then finished"""
     if not (d / 'render/sit-south.png').exists(): sys.exit('sit: run `sit` first (the renders)')
-    if not (d / 'draw/walk-south-drawn-0.png').exists(): sys.exit('sit: draw the walk first - the seated views follow its drawing')
-    groups = (['south', 'south-east', 'south-west', 'east'], ['west', 'north-east', 'north-west', 'north'])
+    if not (d / f'draw/walk-{FRONT}-drawn-0.png').exists(): sys.exit('sit: draw the walk first - the seated views follow its drawing')
+    groups = idle_groups()
     todo = [g for g in (0, 1) if args.again or not (d / f'draw/sit-drawn-{g}.png').exists()]
     if todo and not gate(args, f'sit: {len(todo)} sheets of 4 seated views, about ${len(todo) * 0.11:.2f} (OpenAI)'): return
     bb = union([d / f'render/sit-{x}.png' for x in DIRS]); cost = 0; who = 'person'
     for g, ds in enumerate(groups):
         rs = d / f'draw/sit-renders-{g}.png'; sheet_of([d / f'render/sit-{x}.png' for x in ds], bb, rs); out = d / f'draw/sit-drawn-{g}.png'
         if g not in todo: continue
-        extra = [(d / 'draw/walk-south-drawn-0.png', 'the same character already drawn walking toward the viewer: exactly the same person')]
+        extra = [(d / f'draw/walk-{FRONT}-drawn-0.png', f'the same character already drawn {front_words()}: exactly the same person')]
         extra += ([(d / 'draw/sit-drawn-0.png', "the same character's other seated views, already drawn: exactly the same")] if g else [])
         imgs, words = refs_and_words(s, d, extra)
         turns = '; '.join(f'cell {n + 1}: {head_words(x)}' for n, x in enumerate(ds))
@@ -738,7 +757,7 @@ def sit_draw(s, d, args):
 
 def sit_finish(s, d):
     """free: each seated view cut out, fitted onto its render, cleaned → frames/sit-<facing>.png; then the strips packed (out/sit-*)"""
-    groups = (['south', 'south-east', 'south-west', 'east'], ['west', 'north-east', 'north-west', 'north'])
+    groups = idle_groups()
     for g, ds in enumerate(groups):
         if not (d / f'draw/sit-drawn-{g}.png').exists(): continue
         for n, x in enumerate(ds):
@@ -755,22 +774,22 @@ def draw(s, d, args):
     only = args.only.split(',') if args.only else DIRS + ['idle']
     if args.only and set(only) <= set(s['actions']): only = only + ['__actions_only__']     # (--only run: that action alone)
     walks = [] if '__actions_only__' in only else [x for x in DIRS if x in only and x not in s['mirrored']]     # a mirrored facing is flipped from its pair in `finish`
-    if not (d / 'render/walk-south-0.png').exists(): sys.exit('draw: run `render` first')
-    if walks and 'south' not in walks and not (d / 'draw/walk-south-drawn-0.png').exists(): walks = ['south'] + walks
-    if s['actions'] and not walks and not (d / 'draw/walk-south-drawn-0.png').exists(): walks = ['south']   # (the actions follow its drawing)
+    if not (d / f'render/walk-{FRONT}-0.png').exists(): sys.exit('draw: run `render` first')
+    if walks and FRONT not in walks and not (d / f'draw/walk-{FRONT}-drawn-0.png').exists(): walks = [FRONT] + walks
+    if s['actions'] and not walks and not (d / f'draw/walk-{FRONT}-drawn-0.png').exists(): walks = [FRONT]   # (the actions follow its drawing)
     todo = lambda f: args.again or not (d / f'draw/{f}').exists()     # sheets already drawn are kept (and not paid for again)
-    n = sum(todo(f'walk-{x}-drawn-{k}.png') for x in walks for k in range(-(-s['frames'] // 4))) + (sum(todo(f'idle-drawn-{k}.png') for k in (0, 1)) if 'idle' in only else 0)
-    n += sum(todo(f'{nm}-{x}-drawn-{k}.png') for nm, a in s['actions'].items() if (nm in only or not args.only) and (d / f'render/{nm}-south-0.png').exists()
+    n = sum(todo(f'walk-{x}-drawn-{k}.png') for x in walks for k in range(-(-s['frames'] // 4))) + (sum(todo(f'idle-drawn-{k}.png') for k in range(len(idle_groups()))) if 'idle' in only else 0)
+    n += sum(todo(f'{nm}-{x}-drawn-{k}.png') for nm, a in s['actions'].items() if (nm in only or not args.only) and (d / f'render/{nm}-{FRONT}-0.png').exists()
              for x in action_dirs(s) for k in range(-(-a['frames'] // 4)))
     if n and not gate(args, f'draw: {n} sheets of 4 frames, about ${n * 0.11:.2f} (OpenAI)'): return
     cost = 0
-    if 'south' in walks: cost += draw_walk(s, d, 'south', args.again); walks.remove('south')   # the front first: the rest follow it
+    if FRONT in walks: cost += draw_walk(s, d, FRONT, args.again); walks.remove(FRONT)   # the front first: the rest follow it
     with ThreadPoolExecutor(6) as ex: cost += sum(ex.map(lambda x: draw_walk(s, d, x, args.again), walks))
     if 'idle' in only and '__actions_only__' not in only: cost += draw_idle(s, d, args.again)
     for name in [n for n in s['actions'] if n in only or not args.only]:             # the actions after the walk they follow
-        if not (d / f'render/{name}-south-0.png').exists(): print(f'draw: {name} has no renders - `render` (or `rig --again` for its clip) first'); continue
-        dirs = action_dirs(s); cost += draw_walk(s, d, 'south', args.again, name=name) if 'south' in dirs else 0
-        with ThreadPoolExecutor(6) as ex: cost += sum(ex.map(lambda x: draw_walk(s, d, x, args.again, name=name), [x for x in dirs if x != 'south']))
+        if not (d / f'render/{name}-{FRONT}-0.png').exists(): print(f'draw: {name} has no renders - `render` (or `rig --again` for its clip) first'); continue
+        dirs = action_dirs(s); cost += draw_walk(s, d, FRONT, args.again, name=name) if FRONT in dirs else 0
+        with ThreadPoolExecutor(6) as ex: cost += sum(ex.map(lambda x: draw_walk(s, d, x, args.again, name=name), [x for x in dirs if x != FRONT]))
     print(f'draw: done (${cost:.2f})')
     if all_drawn(s, d): finish(s, d); preview(s, d)        # the rest is free: straight on to the strips and the preview
     else: print('draw: some facings are not drawn yet - draw them, then `finish`')
@@ -792,7 +811,7 @@ def make3d(s, d, args):
     else:
         args.no_render = True; model(s, d, args); rig(s, d, args)
         if (d / 'rig/rig.glb').exists(): render(s, d)
-    if not s['draw'] and (d / 'render/walk-south-0.png').exists(): finish(s, d); preview(s, d)     # nothing to draw: done
+    if not s['draw'] and (d / f'render/walk-{FRONT}-0.png').exists(): finish(s, d); preview(s, d)     # nothing to draw: done
 
 
 # --- finish ---------------------------------------------------------------------------------------------------------------------------
@@ -1017,7 +1036,7 @@ def finish_action(s, d, name, report):
 def finish_3d(s, d):
     """`"draw": false` - no image model draws the frames: the 3D renders themselves are the frames (the toon-shaded model, its own texture), packed the same
     way with their 3D shadows. Nothing paid past the model, but softer: no drawn lines, the model's texture as it came"""
-    if not (d / 'render/walk-south-0.png').exists(): sys.exit('finish: run `3d` (or `render`) first')
+    if not (d / f'render/walk-{FRONT}-0.png').exists(): sys.exit('finish: run `3d` (or `render`) first')
     for f in (d / 'frames').glob('*.png'): f.unlink()
     for dr in DIRS:
         for k in range(s['frames']): shutil.copy(d / f'render/walk-{dr}-{k}.png', d / f'frames/walk-{dr}-{k}.png')
@@ -1117,7 +1136,7 @@ def finish(s, d):
             ious.append(float((a & r).sum() / max(1, (a | r).sum())))
         report[dr] = {'overlap': ious, 'head_scale': [1.0] * n, 'mirrored_from': src}
         print(f'finish: walk {dr} flipped from {src}, overlap {min(ious):.2f}-{max(ious):.2f}', flush=True)
-    groups = (['south', 'south-east', 'south-west', 'east'], ['west', 'north-east', 'north-west', 'north'])
+    groups = idle_groups()
     for g, ds in enumerate(groups):
         if not (d / f'draw/idle-drawn-{g}.png').exists(): continue
         sh = Image.open(d / f'draw/idle-drawn-{g}.png').convert('RGB')
@@ -1535,5 +1554,5 @@ if __name__ == '__main__':
     ap.add_argument('--apply', action='store_true', help='facecheck: write the factors into the other specs as "head_fit"')
     a = ap.parse_args(); s, d = load(a.spec); SPEC_PATH = a.spec
     {'turnaround': lambda: turnaround(s, d, a), '3d': lambda: make3d(s, d, a), 'model': lambda: model(s, d, a), 'rig': lambda: rig(s, d, a), 'render': lambda: render(s, d, a.only.split(',') if a.only else None),
-     'draw': lambda: draw(s, d, a), 'redraw': lambda: redraw(s, d, a), 'frame': lambda: frame_step(s, d, a), 'loop': lambda: loop_gif(s, d, (a.only or 'walk').split(','), a.facing or 'south'), 'finish': lambda: finish(s, d), 'pack': lambda: pack_px(s, d, a.px), 'sit': lambda: sit_draw(s, d, a) if a.draw else sit_render(s, d), 'preview': lambda: preview(s, d),
+     'draw': lambda: draw(s, d, a), 'redraw': lambda: redraw(s, d, a), 'frame': lambda: frame_step(s, d, a), 'loop': lambda: loop_gif(s, d, (a.only or 'walk').split(','), a.facing or FRONT), 'finish': lambda: finish(s, d), 'pack': lambda: pack_px(s, d, a.px), 'sit': lambda: sit_draw(s, d, a) if a.draw else sit_render(s, d), 'preview': lambda: preview(s, d),
      'facecheck': lambda: __import__('facecheck').run(a.spec, (a.others or '').split(','), a.apply)}[a.step]()

@@ -53,10 +53,11 @@ if SMALL: print(f'--px {SMALL}: drawn at 64 (the image model is never asked for 
 s, d = CP.load(A.spec); W = d / 'pixel'; W.mkdir(exist_ok=True); H = A.px; PRICE = 0.075
 # "px" is the STANDING figure's height: how tall it is in the character's own renders (it differs with the model: a coat's hem, big boots)
 _idle = d / 'render/idle-south.png'
+if not _idle.exists(): _idle = d / f'render/idle-{CP.FRONT}.png'      # ("facings": 4 has no south)
 if _idle.exists():
     _b = Image.open(_idle).convert('RGBA').getbbox()
     if _b: P.FIG = float(_b[3] - _b[1])
-ALL = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']
+ALL = list(CP.DIRS)          # the spec's facings: all eight, or the four diagonals with "facings": 4
 DIRS = [x for x in (A.dirs.split(',') if A.dirs else ALL) if x in ALL]; CLIPS = A.clips.split(',')
 Z = 1024 // (H * 4 // 3); CWp, CHp = 384 // Z, 1024 // Z; FOOT = CHp - CHp // 12            # a body sheet's cell in sprite pixels
 CH_ = 32          # the margin a sprite is given on its canvas, px

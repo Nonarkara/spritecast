@@ -11,7 +11,11 @@ Free: nothing is drawn, the strips are read and laid out again.
   aseprite/  <name>-<action>.aseprite, one per action (their frames differ in size): a tag per facing, the layers `shadow` (30 %),
              `body` and `effect`, the frame times from the fps, and a slice `feet` whose pivot is the point between the feet.
   unity/     copy its contents into Assets/: <name>/ (strips, <name>.spritecast.json) and SpriteCast/Editor/SpriteCastImporter.cs,
-             which builds <name>.prefab (Animator > Shadow, Body), the controller and a clip per animation (`walk_south_east`).
+             which builds <name>.prefab (Animator > Shadow, Body), the controller and a clip per animation (`walk_south_east`);
+             SpriteCast/SpriteCastFacing.cs: `SpriteCastFacing.Play(animator, "walk", "east")`.
+
+A set drawn in four facings ("facings": 4 - the diagonals) still takes all eight: each engine's play() shows the nearest facing drawn
+(Godot, Phaser, Unity's SpriteCastFacing), keeping the one shown last between two as near, so walking straight across does not flicker.
 
 What character.json keeps apart is put together here: every animation's shadows become one strip of equal cells with ONE offset,
 so an engine shows shadow frame i under body frame i and never reads a table. A swing's effect ("trail": water, flame, leaves ...)
@@ -118,6 +122,9 @@ def godot(an, dst, name):
     (dst / f'{name}.gd').write_text(f'''extends Node2D
 ## {name}, written by SpriteCast's export.py. The node's position is the point between the feet (on a seat: where the body rests).
 ##   play("walk", "south-east")      facings: south, south-east, east, north-east, north, north-west, west, south-west
+## A facing the set has no drawing for (a set made with "facings": 4 has the diagonals only) shows the nearest one it has; between two
+## as near (east, between south-east and north-east) the one shown last stays, so walking straight across does not flicker;
+## with none shown yet, the one turned more toward the viewer.
 ## Each animation has its own frame size, so the Body's, the Shadow's and the Effect's offsets are set per animation, from the table below.
 ## Effect: what a swing leaves in the air (water, flame, leaves ...), over the body; it runs at its own pace beside the body's frames.
 
@@ -133,11 +140,36 @@ func _ready() -> void:
 \tbody.frame_changed.connect(func(): shadow.frame = body.frame)
 \tplay_named(&"{first}")
 
+const FACINGS := ["south", "south-east", "east", "north-east", "north", "north-west", "west", "south-west"]
+var facing_shown := ""
+
 func has(action: String, facing: String) -> bool:
 \treturn OFFSETS.has(StringName((action + "_" + facing).replace("-", "_")))
 
+## the facing drawn for this action nearest to the one asked for (itself when it is drawn)
+func nearest(action: String, facing: String) -> String:
+\tif has(action, facing):
+\t\treturn facing
+\tvar i := FACINGS.find(facing)
+\tvar best := ""
+\tvar best_d := 99
+\tfor j in FACINGS.size():
+\t\tif not has(action, FACINGS[j]):
+\t\t\tcontinue
+\t\tvar dd: int = abs(i - j)
+\t\tdd = min(dd, 8 - dd)
+\t\t# between two as near: the one shown last, else the one turned more toward the viewer (west: south-west)
+\t\tif dd < best_d or (dd == best_d and best != facing_shown and (FACINGS[j] == facing_shown or min(j, 8 - j) < min(FACINGS.find(best), 8 - FACINGS.find(best)))):
+\t\t\tbest = FACINGS[j]
+\t\t\tbest_d = dd
+\treturn best
+
 func play(action: String, facing: String, restart := false) -> void:
-\tplay_named(StringName((action + "_" + facing).replace("-", "_")), restart)
+\tvar f := nearest(action, facing)
+\tif f == "":
+\t\treturn
+\tfacing_shown = f
+\tplay_named(StringName((action + "_" + f).replace("-", "_")), restart)
 
 func play_named(anim: StringName, restart := false) -> void:
 \tif not OFFSETS.has(anim) or (body.animation == anim and body.is_playing() and not restart):
@@ -194,7 +226,10 @@ def phaser(an, dst, name):
 //   preload() {{ {ident(name)}.preload(this, 'assets/{name}/') }}        // the folder this file and the strips are in
 //   create()  {{ {ident(name)}.create(this); this.girl = {ident(name)}.add(this, 400, 300) }}
 //   this.girl.play('walk', 'south-east'); this.girl.setPosition(x, y)   // x, y: the point between the feet
-// Facings: south, south-east, east, north-east, north, north-west, west, south-west.
+// Facings: south, south-east, east, north-east, north, north-west, west, south-west. A facing the set has no drawing for (a set made
+// with "facings": 4 has the diagonals only) shows the nearest one it has; between two as near (east: south-east or north-east) the one
+// shown last stays, so walking straight across does not flicker; with none shown yet, the one turned more toward the viewer.
+export const FACINGS = ['south', 'south-east', 'east', 'north-east', 'north', 'north-west', 'west', 'south-west']
 export const NAME = {json.dumps(name)}
 export const SHADOW_ALPHA = {SHADOW_ALPHA}
 export const ANIMS = {json.dumps(A, indent=1)}
@@ -224,10 +259,26 @@ export function add(scene, x, y, {{ scale = 1, depth = 0, shadowDepth = -1, effe
   const shadow = scene.add.sprite(x, y, key({json.dumps(first)}) + ':shadow', 0).setAlpha(SHADOW_ALPHA).setDepth(shadowDepth)
   const body = scene.add.sprite(x, y, key({json.dumps(first)}), 0).setDepth(depth)
   const effect = scene.add.sprite(x, y, key({json.dumps(first)}), 0).setDepth(effectDepth).setVisible(false)
-  const c = {{ body, shadow, effect, x, y, scale, current: null,
+  const c = {{ body, shadow, effect, x, y, scale, current: null, facing: null,
     has(action, facing) {{ return (action + '-' + facing) in ANIMS }},
+    // the facing drawn for this action nearest to the one asked for (itself when it is drawn)
+    nearest(action, facing) {{
+      if (c.has(action, facing)) return facing
+      const i = FACINGS.indexOf(facing); let best = null, bd = 99
+      FACINGS.forEach((f, j) => {{
+        if (!c.has(action, f)) return
+        const dd = Math.min(Math.abs(i - j), 8 - Math.abs(i - j))
+        // between two as near: the one shown last, else the one turned more toward the viewer (west: south-west)
+        const toViewer = x => {{ const k = FACINGS.indexOf(x); return Math.min(k, 8 - k) }}
+        if (dd < bd || (dd === bd && best !== c.facing && (f === c.facing || toViewer(f) < toViewer(best)))) {{ best = f; bd = dd }}
+      }})
+      return best
+    }},
     play(action, facing, restart = false) {{
-      const k = action + '-' + facing, a = ANIMS[k]
+      const f = c.nearest(action, facing)
+      if (!f) return c
+      c.facing = f
+      const k = action + '-' + f, a = ANIMS[k]
       if (!a || (k === c.current && !restart && (a.loop || body.anims.isPlaying))) return c
       c.current = k
       body.setOrigin(a.anchor[0] / a.cell[0], a.anchor[1] / a.cell[1]).play(key(k), false)
@@ -328,6 +379,7 @@ def unity(an, dst, name):
                     effect=a['effect'] or dict(png='', cell=[0, 0], offset=[0, 0], n=0, per=1, cols=1)) for a in an]), indent=1))
     ed = dst / 'SpriteCast' / 'Editor'; ed.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(Path(__file__).resolve().parent / 'unity' / 'SpriteCastImporter.cs', ed / 'SpriteCastImporter.cs')
+    shutil.copyfile(Path(__file__).resolve().parent / 'unity' / 'SpriteCastFacing.cs', dst / 'SpriteCast' / 'SpriteCastFacing.cs')   # (runtime, not Editor/)
 
 
 MAKERS = {'godot': godot, 'phaser': phaser, 'aseprite': aseprite, 'unity': unity}

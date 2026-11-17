@@ -1,5 +1,5 @@
 {
- "_": "The looks of a swing's effect (\"trail\" in an action). band: plain | wind | water | fire | none. pieces: small pictures let go along the swing - image (a strip of square cells here, or the user's own file), rate (pieces per figure-height of path), carry (the share of the swing's speed they keep), out (flung outward), rise, jitter (figure heights a second), gravity, drag, life (seconds), size (figure heights), turn (spin | path | up), sway, ground (die | stop), shrink. A pair [a, b] is a range. mass: water | fire - the pieces marked blob are one body (they join where close and part into strings and drops), not pictures; swirl bends their paths together. delay: seconds before a piece shows. when: stroke (the default: only the swing itself, not the wind-up) | always. frames_x: effect frames to each of the body's (2: the effect plays at twice the fps).",
+ "_": "The looks of a swing's effect (\"trail\" in an action). band: plain | wind | water | fire | none. pieces: small pictures let go along the swing - image (a strip of square cells here, or the user's own file), rate (pieces per figure-height of path), carry (the share of the swing's speed they keep), out (flung outward), rise, jitter (figure heights a second), gravity, drag, life (seconds), size (figure heights), turn (spin | path | up), sway, ground (die | stop), shrink. A pair [a, b] is a range. mass: water | fire - the pieces marked blob are one body (they join where close and part into strings and drops), not pictures; swirl bends their paths together. delay: seconds before a piece shows. when: stroke (the default: only the swing itself, not the wind-up) | always. frames_x: effect frames to each of the body's (2: the effect plays at twice the fps). stretch: a fast piece drawn long along its way (water). ground: splash - it bursts where it lands (a ring on the floor, droplets up; \"splash\": the share that do).",
  "plain": {
   "band": "plain"
  },
@@ -31,7 +31,10 @@
     ],
     "shrink": 0.7,
     "fade": 0.2,
-    "min_speed": 2.2
+    "min_speed": 2.2,
+    "stretch": 0.22,
+    "ground": "splash",
+    "splash": 0.07
    },
    {
     "image": "mist.png",
@@ -62,7 +65,7 @@
     "fade": 0.6
    }
   ],
-  "frames_x": 2
+  "frames_x": 3
  },
  "drops": {
   "band": "water",

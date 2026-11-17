@@ -97,6 +97,13 @@ costs; with `--yes` it draws them (twice at most a sheet) and keeps whichever dr
 thing wrong first, then the higher lowest overlap; the other is kept as `<sheet>-out.try<N>.png`. A frame that is only a little
 under 0.75 with the pose right is the user's call: show it and ask.
 
+## How much hand work to expect - say it honestly
+Pixel art needs some fixing by hand, and the user should be told so before, not after: a few pixels a frame with the eraser and the
+pencil, which someone who does not draw can do. Two measured cases on the rain girl at 96 px: the throw, 40 frames - 131 pixels in 10
+frames (0.15 %), only left-over white; the walk-with-umbrella → stance → slash → back up, 23 frames - 1,196 pixels in all 23 frames
+(2.3 %), about 60 minutes, by the user: left-over white, and a held umbrella's tip and edge made the same from frame to frame. A long
+thin held thing is where most of it goes. Offer the editor every time, with "3D shapes over" on for a set that holds something.
+
 ## A swing's effect in pixel art
 An action with `"trail"` (reference/character.md, "A swing's effect") has its effect in the pixel set too: `pixelart.py` reads the same
 renders (`render/<clip>-<facing>-<i>-t.png`) and writes `trails/<clip>-<facing>.png`, with `"trails"` in `pixel.json` (`file`, `frame`,
@@ -129,6 +136,7 @@ machine), give the user the address, stop it when they say they are done. It sav
 | bring back (R) | takes the edits off where it is rubbed; "this frame as it was" takes them all off |
 | ◀ ▶ (← →), play (Enter), "the frame before, faint" | to see a fix in motion and against its neighbour |
 | "3D render beside" (3), "3D render under, faint" | the render the frame was drawn from, at the frame's size and place: beside the sprite, or under it. To tell paper from a real gap, and to see what a pose or a part should be |
+| "3D shapes over" (4) | where the 3D has things, over the frame being drawn: the held thing filled red (`render/<clip>-<facing>-<i>-held.png`), the body's outline blue with a faint blue fill (`-body.png`; with neither, the whole render as the body). A held thing drawn too long, too short or at another angle shows at once - the image model does that to a thin thing the colour of the clothes (the rain girl's umbrella: 2 of 8 walk frames). Not saved into the sprite |
 | wheel, Space + drag, "behind" | zoom at the pointer, move the picture, the colour behind the sprite (white specks show on a dark one, dark specks on a light one) |
 
 **Frames changed by hand are kept like the edits**: the touch file has `_order` (the pipeline's frames by number, the copies by

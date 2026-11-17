@@ -407,6 +407,8 @@ def render(s, d, only=None):
             for f in list((d / 'render').glob('walk-*-held.png')) + list((d / 'render').glob('walk-*-body.png')) + list((d / 'render').glob('idle-*-held.png')) + list((d / 'render').glob('idle-*-body.png')): f.unlink()
         clips = {c['name']: c['duration'] for c in info['clips']}
         for name, a in [(n, x) for n, x in s['actions'].items() if not only or n in only]:   # each action through its clip (a one-shot one from its first frame to its last)
+            bt = a.get('between')            # "between": [from, to] - the poses that join one animation to another's first pose (no clip has them)
+            if bt: ends, a = between_ends(s, a)
             if a['clip'] not in clips: print(f"render: {name}: no clip \"{a['clip']}\" in the rig ({', '.join(clips)}) - left out"); continue
             t0, t1, n = a['t0'], a['t1'] if a['t1'] is not None else clips[a['clip']], a['frames']
             t1x = t1 if a['loop'] else t0 + (t1 - t0) * n / max(1, n - 1)
@@ -419,7 +421,9 @@ def render(s, d, only=None):
             pg.evaluate('(c) => window.setTrail(c)', tr)
             for f in (d / 'render').glob(f'{name}-*-t.png'): f.unlink()
             for dr in action_dirs(s) + [x for x in s['mirrored']]:
-                for k, u in enumerate(pg.evaluate('(a) => window.frames(...a)', [a['clip'], dr, n, t0, t1x, s['head_up'], s['shoulder_up'], s['shoulder_wide'], True])):
+                shots = (pg.evaluate('(a) => window.blendFrames(...a)', [ends[0][0], ends[0][1], ends[1][0], ends[1][1], dr, n, s['head_up'], s['shoulder_up'], s['shoulder_wide'], True]) if bt
+                         else pg.evaluate('(a) => window.frames(...a)', [a['clip'], dr, n, t0, t1x, s['head_up'], s['shoulder_up'], s['shoulder_wide'], True]))
+                for k, u in enumerate(shots):
                     save(u, d / f'render/{name}-{dr}-{k}.png')
                 for k, u in enumerate(pg.evaluate('window.shadowShots')): save(u, d / f'render/{name}-{dr}-{k}-s.png')
                 for k, u in enumerate(pg.evaluate('window.heldShots')): save(u, d / f'render/{name}-{dr}-{k}-held.png')     # the held thing alone
@@ -544,7 +548,7 @@ def refs_and_words(s, d, extra):
 
 
 def draw_walk(s, d, dr, again, only_groups=None, name='walk'):
-    a = s['actions'].get(name) or {'frames': s['frames'], 'words': 'walking', 'hold': s.get('hold')}
+    a = dict(s['actions'].get(name) or {'frames': s['frames'], 'words': 'walking', 'hold': s.get('hold')}, _facing=dr)
     paths = [d / f'render/{name}-{dr}-{i}.png' for i in range(a['frames'])]; bb = union(paths); cost = 0
     groups = [list(range(i, min(i + 4, len(paths)))) for i in range(0, len(paths), 4)]
     front0 = d / 'draw/walk-south-drawn-0.png'
@@ -558,7 +562,7 @@ def draw_walk(s, d, dr, again, only_groups=None, name='walk'):
                     + who + ', but the legs and the stride of THIS sheet\'s renders (image 1), NOT the first half\'s poses')] if g else [])
         imgs, words = refs_and_words(s, d, extra)
         hold = a.get('hold')
-        held = held_words(hold, d, name, dr, [held_where(d, stem_of(name, dr, k), n_ + 1) for n_, k in enumerate(idx)] if hold else [])
+        held = held_words(hold, d, name, dr, [held_where(d, stem_of(name, dr, k), n_ + 1) for n_, k in enumerate(idx)] if hold else []) + cell_words(a, idx)
         P = (f"Image 1 is a SHEET of {len(idx)} separate frames of one {a['words']} animation, side by side, read left to right - every cell a 3D render "
              f"of the same {who} in one moment of it, seen from a game camera from above. " + (a['pose'] + ' ' if a.get('pose') else '') + "Redraw EVERY cell as a finished illustration, "
              "keeping the sheet exactly as it is: the same cells, each figure at exactly the same position, size and pose - the legs, the stride, "
@@ -568,6 +572,87 @@ def draw_walk(s, d, dr, again, only_groups=None, name='walk'):
         try: cost += gpt(P, [rs] + imgs, out, '1536x1024')
         except Refused: print(f'draw: {out.name} turned down by OpenAI\'s safety check three times - left as it was; run it again later, or say less about skin and length in the description')
     return cost
+
+
+def cell_words(a, idx, cell=None):
+    """an action's "frame_words" ({"5": "...", "5@south-east": "..."} - frames from 1) for the frames on this sheet, said cell by cell. For
+    what the render cannot show the image model: a hand the render has floating by the umbrella that holds it behind the head, say
+    (it drew the fist pulled up into sight until it was told so). `cell`: the one cell a frame drawn alone sits in"""
+    fw = a.get('frame_words') or {}; dr = a.get('_facing'); out = []
+    for n_, k in enumerate(idx):
+        w = fw.get(f'{k + 1}@{dr}') or fw.get(str(k + 1))
+        if w: out.append(f' IN CELL {cell or n_ + 1} (frame {k + 1}): {w}')
+    return ''.join(out)
+
+
+def draw_frame(s, d, name, dr, k):
+    """ONE frame of an action drawn alone - its render in the second cell of a sheet (the rest white), at the action's own scale, the
+    action's drawn sheet beside it for the style → draw/<name>-<facing>-single-<k>.png, which `finish` uses in place of the sheet's cell.
+    For one frame that came out wrong: drawn alone, with its own "frame_words", the image model attends to that frame only"""
+    a = dict(s['actions'][name], _facing=dr); paths = [d / f'render/{name}-{dr}-{i}.png' for i in range(a['frames'])]; bb = union(paths)
+    blank = d / 'draw/blank.png'; Image.new('RGBA', Image.open(paths[k]).size, (0, 0, 0, 0)).save(blank)
+    rs = d / f'draw/{name}-{dr}-single-{k}-render.png'; sheet_of([blank, paths[k], blank, blank], bb, rs)
+    imgs, words = refs_and_words(s, d, [(d / f'draw/{name}-{dr}-drawn-{k // 4}.png', 'the rest of this action, already drawn: exactly the same person, size and style')])
+    hold = a.get('hold'); held = held_words(hold, d, name, dr, [held_where(d, stem_of(name, dr, k), 2)] if hold else []) + cell_words(a, [k], cell=2)
+    P = (f"Image 1 is a sheet of four cells with ONE figure in it, in the second cell: a 3D render of a person in one moment of {a['words']}, seen from a "
+         "game camera from above. Redraw THAT figure as a finished illustration at exactly the same position, size and pose - the legs, the arms and "
+         f"the head exactly as the render - and leave the other three cells plain white, nothing in them. THE HEAD: "
+         f"{head_as_render(dr) if a.get('head') == 'as_render' and dr.startswith('south') else head_words(dr, False)}.{held} {words}\n" + frame_rules(s, bool(hold), hand_of(hold)))
+    (d / f'draw/{name}-{dr}-single-{k}-prompt.txt').write_text(P); out = d / f'draw/{name}-{dr}-single-{k}.png'
+    try: return gpt(P, [rs] + imgs, out, '1536x1024')
+    except Refused: print(f'draw: {out.name} turned down by OpenAI\'s safety check three times - left as it was'); return 0
+
+
+def frame_step(s, d, args):
+    """`charpipe.py frame SPEC --only <action> --facing <facing> --frame <n>` (n from 1): that one frame drawn again alone (PAID, ~$0.08),
+    then the action finished again with it. The earlier drawing of it is kept as .before.png"""
+    name, dr, k = args.only, args.facing, (args.frame or 0) - 1
+    if name not in s['actions'] or dr not in DIRS or not 0 <= k < s['actions'][name]['frames']: sys.exit('frame: --only <an action>, --facing <one of the 8>, --frame <1..its frames>')
+    if not (d / f'draw/{name}-{dr}-drawn-{k // 4}.png').exists(): sys.exit(f'frame: draw {name} {dr} first (its sheet is the style the frame is drawn to)')
+    if not gate(args, f'frame: {name} {dr} frame {k + 1} drawn alone, about $0.08 (OpenAI)'): return
+    one = d / f'draw/{name}-{dr}-single-{k}.png'
+    if one.exists(): shutil.copy2(one, one.with_suffix('.before.png'))
+    print(f'frame: ${draw_frame(s, d, name, dr, k):.2f}'); rep_ = {}; finish_action(s, d, name, rep_); print(rep_.get(f'{name} {dr}'))
+
+
+def loop_gif(s, d, names, dr, scale=0.42):
+    """`charpipe.py loop SPEC --only walk,ready,slash,recover --facing south-east`: the finished frames of several animations played one
+    after another as ONE looping GIF, each with its 3D shadow and, where the action has one, its swing's effect - to see a walk go into an
+    attack and back out before anything is drawn again or packed (out/loop-<facing>.gif, free). A looping animation (the walk) plays from
+    its second frame round to its first, the pose a "between" leaves from and comes back to; a one-shot plays once. Each at its own pace:
+    the walk and the actions as `pack` times them, in-betweens 0.12 s a frame."""
+    seq = []
+    for nm in names:
+        if nm == 'walk': a = {'frames': s['frames'], 'loop': True, 't0': s['walk']['t0'], 't1': s['walk']['t1']}
+        elif nm in s['actions']: a = s['actions'][nm]
+        else: sys.exit(f'loop: no animation "{nm}" (walk, or one of {", ".join(s["actions"])})')
+        n = a['frames']; t0, t1 = a.get('t0') or 0, a.get('t1')
+        ms = 120 if a.get('between') or not t1 else round(1000 * (t1 - t0) / (n if a.get('loop', True) else max(1, n - 1)))
+        tr = effect_of(a.get('trail'), d.parent) if a.get('trail') else None; m = max(1, int((tr or {}).get('frames_x') or 1)) if tr else 1
+        order = [(k + 1) % n for k in range(n)] if a.get('loop', True) and not a.get('between') else list(range(n))
+        for k in order:
+            for j in range(m): seq.append((nm, k, k * m + j if tr else None, ms // m))
+    missing = sorted({f'{nm}-{dr}-{k}' for nm, k, _, _ in seq if not (d / f'frames/{nm}-{dr}-{k}.png').exists()})
+    if missing: sys.exit(f'loop: not finished yet: {", ".join(missing[:6])}{" ..." if len(missing) > 6 else ""} - draw and finish them first')
+    S = max(Image.open(d / f'frames/{nm}-{dr}-{k}.png').width for nm, k, _, _ in seq)          # (the walk's canvas is smaller: same middle, same scale)
+    BG = (226, 230, 222); pics, boxes = [], []
+    for nm, k, q, ms in seq:
+        c = Image.new('RGBA', (S, S), BG + (255,))
+        def lay(p, shade=False):
+            if not p.exists(): return None
+            im = Image.open(p).convert('RGBA')
+            if shade: a_ = (np.asarray(im)[..., 3] > 128).astype(np.uint8) * 77; im = Image.fromarray(np.dstack([np.full(a_.shape + (3,), (40, 30, 24), np.uint8), a_]))
+            o = (S - im.width) // 2; c.alpha_composite(im, (o, o)); b = im.getchannel('A').getbbox(); return b and (b[0] + o, b[1] + o, b[2] + o, b[3] + o)
+        bb = [lay(d / f'render/{nm}-{dr}-{k}-s.png', True), lay(d / f'frames/{nm}-{dr}-{k}.png')] + ([lay(d / f'render/{nm}-{dr}-{q}-t.png')] if q is not None else [])
+        pics.append((c, ms)); boxes += [b for b in bb if b]
+    x0, y0 = min(b[0] for b in boxes) - 30, min(b[1] for b in boxes) - 30; x1, y1 = max(b[2] for b in boxes) + 30, max(b[3] for b in boxes) + 30
+    x0, y0, x1, y1 = max(0, x0), max(0, y0), min(S, x1), min(S, y1)
+    out = [c.crop((x0, y0, x1, y1)).convert('RGB').resize((round((x1 - x0) * scale), round((y1 - y0) * scale)), Image.LANCZOS) for c, _ in pics]
+    pal = Image.fromarray(np.concatenate([np.asarray(o.resize((o.width // 2, o.height // 2))) for o in out], 1)).quantize(250, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE)   # (from every picture: one effect's colours missed by a few sampled ones came out grey)
+    f = d / f'out/loop-{dr}.gif'; f.parent.mkdir(exist_ok=True)
+    q_ = [o.quantize(palette=pal, dither=Image.Dither.NONE) for o in out]
+    q_[0].save(f, save_all=True, append_images=q_[1:], duration=[ms for _, ms in pics], loop=0, optimize=True)
+    print(f'loop: {f} - {" > ".join(names)}, {len(seq)} pictures, {sum(ms for _, ms in pics) / 1000:.1f} s round - look at the joins (free)')
 
 
 def draw_idle(s, d, again):
@@ -710,13 +795,34 @@ def make3d(s, d, args):
 
 
 # --- finish ---------------------------------------------------------------------------------------------------------------------------
-def cut(d, path, n):
+def cell_width(path, cells):
+    """how wide a drawn sheet's cells are. The guide puts its figures in fixed quarters; a sheet with fewer than four may come back with
+    them spread over the whole width instead (three figures on thirds: the fixed cut went through the second and third - the rain
+    girl's 3-frame in-between, 2026-11-16). Whichever grid - quarters, or the sheet in `cells` equal parts - lies closer to the
+    middles of the ink actually drawn is taken."""
+    if cells >= 4: return CW
+    a = np.asarray(Image.open(path).convert('L')) < 200; col = a.sum(0) > 2
+    runs, x = [], 0
+    while x < len(col):
+        if col[x]:
+            x0 = x
+            while x < len(col) and (col[x] or col[x:x + 25].any()): x += 1
+            runs.append((x0, x))
+        x += 1
+    runs = sorted(sorted(runs, key=lambda r: r[0] - r[1])[:cells])
+    if len(runs) != cells: return CW
+    mids = [(r0 + r1) / 2 for r0, r1 in runs]; spread = len(col) / cells
+    err = lambda w: sum(abs(m - (k + 0.5) * w) for k, m in enumerate(mids))
+    return int(spread) if err(spread) < err(CW) else CW
+
+
+def cut(d, path, n, cells=4):
     """cell n of a drawn sheet, cut out - kept in frames/cut/ by the sheet's name, cell and modification time, so a `finish` after
-    `redraw` cuts only the sheets that changed (the AI cut-out takes ~3 s a cell on a CPU)"""
-    path = Path(path); key = d / f'frames/cut/{path.stem}-{n}-{path.stat().st_mtime_ns}.png'
+    `redraw` cuts only the sheets that changed (the AI cut-out takes ~3 s a cell on a CPU). `cells`: how many figures the sheet has"""
+    path = Path(path); cw = cell_width(path, cells); key = d / f'frames/cut/{path.stem}-{n}-{path.stat().st_mtime_ns}{"" if cw == CW else f"-w{cw}"}.png'
     if key.exists(): return Image.open(key).convert('RGBA')
     for old in key.parent.glob(f'{path.stem}-{n}-*.png'): old.unlink()
-    key.parent.mkdir(parents=True, exist_ok=True); sp = CL.cut_cell(Image.open(path).convert('RGB'), n, CW, CH); sp.save(key); return sp
+    key.parent.mkdir(parents=True, exist_ok=True); sp = CL.cut_cell(Image.open(path).convert('RGB'), n, cw, CH); sp.save(key); return sp
 
 
 HELD_MIN = 0.5      # a frame whose drawing covers under half of where the render has the held thing (off the body): drawn in the wrong place
@@ -877,7 +983,8 @@ def finish_action(s, d, name, report):
     for dr in action_dirs(s):
         if not all((d / f'draw/{name}-{dr}-drawn-{g}.png').exists() for g in range(len(groups))): continue
         sprites = []
-        for g, idx in enumerate(groups): sprites += [cut(d, d / f'draw/{name}-{dr}-drawn-{g}.png', k) for k in range(len(idx))]
+        for g, idx in enumerate(groups): sprites += [cut(d, d / f'draw/{name}-{dr}-drawn-{g}.png', k, len(idx)) for k in range(len(idx))]
+        for k in [k for k in range(n) if (d / f'draw/{name}-{dr}-single-{k}.png').exists()]: sprites[k] = cut(d, d / f'draw/{name}-{dr}-single-{k}.png', 1)   # (a frame drawn alone: `frame`)
         rens = [Image.open(d / f'render/{name}-{dr}-{i}.png').convert('RGBA') for i in range(n)]
         if s['kind'] == 'animal': frames, ious = CL.fit_walk(sprites, rens, None)
         elif a.get('hold'):
@@ -1175,7 +1282,8 @@ ACTION_DEFAULTS = {'run': {'loop': True, 'words': 'running (a quick run: both fe
 HOLD_WORDS = {'umbrella': 'In the RIGHT hand: a closed, furled umbrella held like a sword by its hooked handle - draw it exactly where and how the '
                          'render shows it, in the colours the render has. It has THREE PARTS, the same in every cell: a dark brown wooden J-shaped handle, in '
                          'the fist; then a straight bare SILVER METAL shaft, exactly as long as that cell\'s render shows it between the handle and the '
-                         'canopy (bare metal: never brown, never wood, never wrapped in cloth); then the canopy wrapped tight, with a small silver tip. '
+                         'canopy (bare metal: never brown, never wood, never wrapped in cloth), and AS THICK as the render shows it - a solid metal rod, never a thin line '
+                         'or a wire; where the coat, a hand or a leg hides part of it, the part that shows keeps that same thickness; then the canopy wrapped tight, with a small silver tip. '
                          'Where the render shows the silver shaft between the two hands, draw the silver shaft there, the hands as far apart as the '
                          'render has them - do not move the hands together and do not lengthen the handle to fill the gap. '
                          'It is on the SAME side of the body and points the SAME way as in that cell\'s render, also when she is seen from '
@@ -1229,6 +1337,27 @@ def actions_of(s):
         if hand_of(e.get('hold')) == 'left' and 'words' not in a: e['words'] = e['words'].replace('right hand', 'left hand')
         out[n] = e
     return out
+
+
+def between_ends(s, a):
+    """an action with "between": [from, to] → ([(clip, time) of each end], the action with an end's clip, held thing and canvas): its
+    frames are the poses part-way from one pose to another. An end is "walk", "idle" or an action's name - its FIRST pose - or
+    "<action>:end", its LAST (the pose an attack stops in: ["slash:end", "walk"] brings the body back up into the walk)."""
+    def end(x):
+        x, _, at = x.partition(':')
+        if at not in ('', 'end'): sys.exit(f'spec: "between": "{x}:{at}" - only "<action>:end" (its last pose) is known')
+        if x == 'walk': return s['walk']['clip'], s['walk']['t1' if at else 't0'], {}
+        if x == 'idle': return s['idle']['clip'], s['idle']['t'], {}
+        if x not in s['actions']: sys.exit(f'spec: "between": no action "{x}" (walk, idle or one of {", ".join(s["actions"])})')
+        e = s['actions'][x]
+        if at and e['t1'] is None: sys.exit(f'spec: "between": "{x}:end" needs that action\'s "t1" (where its clip is cut)')
+        return e['clip'], e['t1'] if at else e['t0'], e
+    ends = [end(x) for x in a['between']]
+    a = dict(a, clip=ends[1][0], t0=0, t1=0, loop=False)
+    for k in ('hold', 'canvas'):          # what is held, and the room for it: the far end's, or else the near end's
+        v = ends[1][2].get(k) or ends[0][2].get(k)
+        if v and k not in a: a[k] = v
+    return [e[:2] for e in ends], a
 
 
 def action_dirs(s):
@@ -1394,15 +1523,16 @@ def video(d, meta, S, pad, loops=6):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['turnaround', '3d', 'model', 'rig', 'render', 'draw', 'redraw', 'finish', 'pack', 'preview', 'facecheck', 'sit'])
+    ap.add_argument('step', choices=['turnaround', '3d', 'model', 'rig', 'render', 'draw', 'redraw', 'frame', 'loop', 'finish', 'pack', 'preview', 'facecheck', 'sit'])
     ap.add_argument('--draw', action='store_true', help='sit: draw the seated views (PAID, ~$0.22) and finish them')
     ap.add_argument('--low', action='store_true', help='redraw: an action\'s sheets that are only a little off the render too')
     ap.add_argument('spec'); ap.add_argument('--yes', action='store_true'); ap.add_argument('--again', action='store_true'); ap.add_argument('--only')
     ap.add_argument('--px', type=int, help='pack: frames this many px tall into out-<px>px/ (the drawings resized once; out/ left as it is)')
     ap.add_argument('--no-render', action='store_true', help='rig: stop before the renders')
+    ap.add_argument('--facing', help='frame, loop: the facing'); ap.add_argument('--frame', type=int, help='frame: which frame, from 1')
     ap.add_argument('--with', dest='others', help='facecheck: the other characters\' specs, comma-separated')
     ap.add_argument('--apply', action='store_true', help='facecheck: write the factors into the other specs as "head_fit"')
     a = ap.parse_args(); s, d = load(a.spec); SPEC_PATH = a.spec
     {'turnaround': lambda: turnaround(s, d, a), '3d': lambda: make3d(s, d, a), 'model': lambda: model(s, d, a), 'rig': lambda: rig(s, d, a), 'render': lambda: render(s, d, a.only.split(',') if a.only else None),
-     'draw': lambda: draw(s, d, a), 'redraw': lambda: redraw(s, d, a), 'finish': lambda: finish(s, d), 'pack': lambda: pack_px(s, d, a.px), 'sit': lambda: sit_draw(s, d, a) if a.draw else sit_render(s, d), 'preview': lambda: preview(s, d),
+     'draw': lambda: draw(s, d, a), 'redraw': lambda: redraw(s, d, a), 'frame': lambda: frame_step(s, d, a), 'loop': lambda: loop_gif(s, d, (a.only or 'walk').split(','), a.facing or 'south'), 'finish': lambda: finish(s, d), 'pack': lambda: pack_px(s, d, a.px), 'sit': lambda: sit_draw(s, d, a) if a.draw else sit_render(s, d), 'preview': lambda: preview(s, d),
      'facecheck': lambda: __import__('facecheck').run(a.spec, (a.others or '').split(','), a.apply)}[a.step]()

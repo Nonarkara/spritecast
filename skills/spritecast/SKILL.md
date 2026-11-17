@@ -114,6 +114,14 @@ hand (`umbrella`, `pistol`, `watergun`; `{"kind", "hand": "left"|"right", "lengt
 `"hold"` in the spec itself (not in one action) is carried all the time - walk, standing, every action - and then nothing is ever flipped
 (`"mirror": "never"`, also on its own for a character that is not the same on both sides). The hand closes on the handle by itself:
 **open `render/hand-<name>.png` and read the line `render` prints before any paid sheet** (reference/character.md, "the hand closes on it").
+**Joining two animations** (`{"name": "ready", "between": ["walk", "slash"], "frames": 3}`; `"slash:end"` for an action's last pose): the rig's
+poses part-way from one to the other, so a walk goes into an attack and back out without a jump. Free to render - look - then drawn like any
+action (reference/character.md, "The poses between two animations").
+**See animations joined**: `charpipe.py loop SPEC --only walk,ready,slash,recover --facing <f>` (free) → `out/loop-<f>.gif` - show it
+after drawing in-betweens: a frame that jumps shows there.
+**One frame of an action wrong**: `"frame_words": {"5@south-east": "..."}` says what the render cannot show for that frame, and
+`charpipe.py frame SPEC --only <action> --facing <f> --frame <n> --yes` (~$0.08) draws it alone. A hand the head hides is drawn pulled into
+sight unless that frame says it is hidden (reference/character.md, "One frame wrong").
 **A swing's effect** (`"trail"` in an action that holds something: `"trail": "water"`): what the held thing leaves in the air - `plain`,
 `wind`, `water`, `drops`, `fire`, `flames`, `leaves`, `greenleaves`, `petals`, `snow`, `sparkle`. Free and no drawing: `render` reads the
 held thing's path off the rig and writes the effect as a sprite of its own (`out/<action>-<facing>-trail.png`, `"trail"` in

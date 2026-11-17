@@ -225,15 +225,37 @@ its frames.
   ground - the same leaf in every frame, not a new scatter each time.
 - **Water and fire move as one body** (you asked). Water comes off as a sheet, stretches into strings, breaks into drops and leaves
   mist; flame is white-yellow at its heart, orange, then a red rim that darkens as it cools, with ash drifting up.
+- **Water looks like water.** Thin water is pale and see-through, deep water darker, with a bright rim and a highlight from the
+  same light as the character; fast drops are drawn long along their way, and a few burst on the floor in a ring and a splash.
 - **Only the swing itself.** Nothing comes off while the umbrella is being raised: the fast stretch of the motion is found by itself.
-- **Twice the frames.** The body is drawn 8 times, but water and fire have 16 frames and play at twice the pace over them - at 8
-  the sheet was whole in one frame and already drops in the next.
+- **More frames than the body.** The body is drawn 8 times, but water has 24 effect frames (three to each) and fire 16 (two), played
+  faster over them - at 8 the sheet was whole in one frame and already drops in the next.
 - **In pixel art too**, at the sprite's size: solid things keep hard edges, mist stays see-through.
 
 ![the same slash as 96-px pixel art, with water and with fire](docs/effects-pixel.gif)
 
-**Honestly:** these are worked out, not painted, so they are clean rather than hand-drawn; fire is the weakest of them. The path
+**Honestly:** these are worked out, not painted, so they are clean rather than hand-drawn. The path
 is the held thing's, so an action needs something in the hand. Made and looked at on the umbrella slash only.
+
+### Joining two animations: into a swing and back out
+
+A walk does not end in an attack's first pose, and an attack does not end in the walk's: played one after the other, the body jumps.
+The 3D rig makes the frames between (you asked): `{"name": "ready", "between": ["walk", "slash"], "frames": 3}` and
+`{"name": "recover", "between": ["slash:end", "walk"], "frames": 4}`. Below, all drawn: she walks with her umbrella, goes down into
+the stance (3 frames from the rig), swings with the water effect, comes back up (4 more) and walks on.
+
+![the rain girl walking with her umbrella, going down into a stance, swinging it with a splash of water and mist, coming back up and walking on](docs/loop-2d.gif)
+
+- **How.** The rig plays both animations at once, each stopped at one moment, and goes from the one to the other, easing in and
+  out. `"slash:end"` starts from an attack's last pose instead of its first.
+- **Free to render, drawn like any action** - one sheet for three or four frames, about $0.08.
+- **Look at them joined**: `charpipe.py loop hero.json --only walk,ready,slash,recover --facing south-east` (free) makes a GIF like the
+  one above from the finished frames, so a frame that jumps is seen before anything is drawn again.
+- **One frame wrong? Draw it alone.** `charpipe.py frame hero.json --only slash --facing south-east --frame 5 --yes` (~$0.08) draws
+  just that frame again; `"frame_words"` in the action tells the image model what that frame's render cannot. Frame 5 above had the
+  left fist floating over the umbrella five times running; told the hand is mostly hidden behind her head, it came out right.
+- **The thing in the hand stays in the hand.** For it to be there in the walk too, the walk carries it (here an action on the walk's
+  clip with the umbrella); otherwise it would appear from nowhere in the first in-between.
 
 ### Pixel art (arcade size)
 
@@ -276,6 +298,17 @@ pixel is meant to be before you touch it:
 How much is left to the hand: very little. For the 40 throw frames, about 6 minutes of AI drawing and 2 of AI cut-out; then the only
 hand work was the magic eraser - a click on each speck of left-over white, in 10 of the 40 frames (131 pixels, 0.15 % of the
 sprites). No face was touched: they are as the pipeline made them. The build prints those numbers every time.
+
+**A harder set, and what the hand did.** Pixel art does need some fixing by hand - a few pixels a frame, the kind anyone can do
+with an eraser and a pencil, no drawing skill. The same loop as the one under "Joining two animations", in pixel art: she walks with her umbrella, goes down into the stance, swings, comes back up and walks on. That is four animations joined, 23 frames. Every frame was touched: 1,196 pixels of 51,442 (2.3 %), about 60
+minutes in the editor by someone who does not draw - left-over white, the umbrella's tip and edge made the same from frame to
+frame. Not fixed: in two walk frames the umbrella is drawn a little off the 3D one's angle and length.
+
+
+- **The editor shows where the 3D has things** (key `4`): the held thing in red and the body's outline in blue, over the frame you
+  are drawing - so an umbrella drawn too long or at the wrong angle is seen at once.
+
+![the pixel editor with the 3D umbrella laid in red and the 3D body's outline in blue over a walk frame: the drawn umbrella lies on the red one](docs/pixel-edit-shapes.png)
 
 **How many colours.** A set comes out with about 40 colours. `--colours 16` gives it 16 at most (8 is the least), and
 `--palette` gives every pixel its nearest colour in a set palette: one of the 15 that come with the skill, by name

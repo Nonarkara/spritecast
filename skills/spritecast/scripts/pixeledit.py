@@ -116,6 +116,29 @@ def serve(spec, px, port, open_, host='127.0.0.1'):
         except Exception: pass          # (no render for it: an empty picture)
         b = io.BytesIO(); im.save(b, 'PNG'); refs[(name, i)] = b.getvalue(); return refs[(name, i)]
 
+    def ref_parts(name, i):
+        """the 3D SHAPES of a frame, to lay over the sprite while drawing (the user: "show the weapon in red, the character in blue"): the
+        held thing filled red, the body's outline blue with a faint blue fill - each from its own render (render/<clip>-<facing>-<i>-held.png
+        and -body.png; with neither, the whole render as the body). On the frame's own place, R times the frame, like ref()"""
+        if (name, i, 'parts') in refs: return refs[(name, i, 'parts')]
+        im = Image.new('RGBA', (fw * R, fh * R))
+        try:
+            if not prop:
+                from scipy import ndimage as ndi
+                clip, dr = name.split('-', 1); st = json.loads((d / 'pixel' / f'state-{px}.json').read_text())
+                idle = Image.open(d / 'render/idle-south.png').convert('RGBA').getbbox(); k = round(px * st['scale']) / (idle[3] - idle[1])
+                def mask(path):
+                    r = Image.open(path).convert('RGBA').getchannel('A'); r = r.resize((max(1, round(r.width * k * R)), max(1, round(r.height * k * R))), Image.LANCZOS)
+                    big = Image.new('L', (im.width + 2000, im.height + 2000)); big.paste(r, ((64 - origin[0]) * R + 1000, (64 - origin[1]) * R + 1000))
+                    return np.asarray(big.crop((1000, 1000, 1000 + im.width, 1000 + im.height))) > 127
+                bp, hp = d / f'render/{clip}-{dr}-{i}-body.png', d / f'render/{clip}-{dr}-{i}-held.png'
+                body = mask(bp if bp.exists() else d / f'render/{clip}-{dr}-{i}.png'); a = np.zeros(body.shape + (4,), np.uint8)
+                a[body] = (40, 110, 255, 30); a[body & ~ndi.binary_erosion(body, iterations=max(1, R // 3))] = (40, 110, 255, 235)
+                if hp.exists(): a[mask(hp)] = (255, 40, 40, 170)
+                im = Image.fromarray(a)
+        except Exception: pass          # (no render for it: an empty picture)
+        b = io.BytesIO(); im.save(b, 'PNG'); refs[(name, i, 'parts')] = b.getvalue(); return refs[(name, i, 'parts')]
+
     class H(http.server.BaseHTTPRequestHandler):
         def log_message(self, *a): pass
 
@@ -133,6 +156,7 @@ def serve(spec, px, port, open_, host='127.0.0.1'):
                                                   'colours': load_touch(cp).get('colours', []), 'can_add': can_add,
                                                   'animations': [{'name': n, 'frames': len(order_of(t, n, nbase[n])), 'order': order_of(t, n, nbase[n]), 'added': t.get('_added', {}).get(n, {}), 'edits': t.get(n, {}), 'made': m.get(n, {}), 'seconds': sec.get(n, 0)} for n in names]}).encode(), 'application/json')
             if u.startswith('/base/') and u[6:-4] in names: return self.send(200, (base / f'{u[6:-4]}.png').read_bytes(), 'image/png')
+            if u.startswith('/refparts/') and u.endswith('.png') and u[10:-4].rsplit('/', 1)[0] in names: n_, i_ = u[10:-4].rsplit('/', 1); return self.send(200, ref_parts(n_, int(i_)), 'image/png')
             if u.startswith('/ref/') and u.endswith('.png') and u[5:-4].rsplit('/', 1)[0] in names: n_, i_ = u[5:-4].rsplit('/', 1); return self.send(200, ref(n_, int(i_)), 'image/png')
             self.send(404, b'not found', 'text/plain')
 

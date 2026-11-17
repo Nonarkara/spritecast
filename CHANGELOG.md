@@ -3,6 +3,29 @@
 What changed in each version. The version is the one in `.claude-plugin/plugin.json`; Claude Code offers an update when it goes up.
 Changes made because of a report or a request are marked *(feedback)*.
 
+## 0.16.0 — 2026-11-16
+
+- **The frames between two animations**: `{"name": "ready", "between": ["walk", "slash"], "frames": 3}` - the 3D rig's poses
+  part-way from the walk into the attack's first pose, and `["slash:end", "walk"]` back out of its last. Rendered free, drawn like
+  any action. A walk into a swing no longer jumps. *(feedback)*
+- **The pixel editor shows where the 3D has things** (key `4`): the held thing in red, the body's outline in blue, over the frame
+  being drawn. *(feedback)*
+- **Animations joined into one GIF**: `charpipe.py loop SPEC --only walk,ready,slash,recover --facing <f>` (free) - a walk into an
+  attack and back out, with shadows and the swing's effect, to look at the joins.
+- **One frame drawn again alone**: `charpipe.py frame SPEC --only <action> --facing <f> --frame <n>`, and `"frame_words"` in an action
+  for what that frame's render cannot show. A hand hidden behind the head, which the image model pulled up into sight five times, came
+  right once its frame said it was hidden. *(feedback)*
+- The umbrella's shaft and tip can be given colours (`"shaft"`, `"tip"`).
+- The README's banner: on the left the pixel rain girl now walks with her umbrella, swings it and throws water that wets the title.
+- A new README example, all drawn: the rain girl walks with her umbrella, goes into the stance, swings with water, comes back up. And
+  the same loop in pixel art, with what it took by hand said plainly (1,196 pixels of 51,442, 2.3 %, about 60 minutes by someone who
+  does not draw).
+- A drawn sheet of fewer than four frames is cut where its figures really are: the image model may spread three figures over the
+  whole width, and the fixed quarters cut through two of them.
+- The umbrella's sentence asks for the silver shaft as thick as the render has it, also where the coat hides part of it (it was
+  drawn as a thin wire). Effect pieces (mist, sparks, snow) no longer have a grey rim on a light floor.
+- Not checked: in-between frames for an action whose clip `pack` takes its frame rate from (it takes the walk's).
+
 ## 0.15.0 — 2026-11-16
 
 - **Files your engine opens as they are.** `export.py <name>/out` (free) writes a Godot 4 scene, a Unity folder whose editor script

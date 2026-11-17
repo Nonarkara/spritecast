@@ -51,6 +51,10 @@ def patched():
     assert h.count(a) == 1 and h.count(b) == 1, 'render_char.html has changed: the patch points are gone'
     h = h.replace(a, a.replace('window.bodyShots = [];', 'window.bodyShots = []; window.depthShots = [];'))
     h = h.replace(b, VIS + PASS + b)
+    # the same for in-between poses ("between": window.blendFrames)
+    a2 = "window.bodyShots = []; window.trailShots = [];\n  root.rotation.y = FACING[dir]"; b2 = "    if (shadows) {                       // the in-between pose, flat on the ground"
+    assert h.count(a2) == 1 and h.count(b2) == 1, 'render_char.html has changed: the patch points are gone'
+    h = h.replace(a2, a2.replace('window.bodyShots = [];', 'window.bodyShots = []; window.depthShots = [];')).replace(b2, PASS + b2)
     # something small held, and let go: a snowball (the repo's renderer knows an umbrella only), shown up to "until" seconds
     e = "const HOLDS = {\n"; f = "    mixer.setTime(t);\n"; g = "window.ready = true;"
     assert h.count(e) == 1 and h.count(f) == 1 and h.count(g) == 1, 'render_char.html has changed: the patch points are gone'
@@ -83,6 +87,8 @@ def main(spec, WANT=WANT, sd=None, colour=False):
             pg.evaluate('(a) => window.frames(...a)', [w['clip'], dr, s['frames'], w['t0'], w['t1']] + pose)
             for k, u in enumerate(pg.evaluate('window.depthShots')): save(u, out / f'walk-{dr}-{k}.png')
         for name, a in s['actions'].items():           # as charpipe.render: the same times, canvas and held thing
+            ends = None
+            if a.get('between'): ends, a = CP.between_ends(s, a)
             if name not in WANT or a['clip'] not in clips: continue
             t0, t1, n = a['t0'], a['t1'] if a['t1'] is not None else clips[a['clip']], a['frames']
             t1x = t1 if a['loop'] else t0 + (t1 - t0) * n / max(1, n - 1)
@@ -95,7 +101,8 @@ def main(spec, WANT=WANT, sd=None, colour=False):
                 if until == 'auto': until = pg.evaluate('([c, a, b]) => window.handFastest(c, a, b)', [a['clip'], t0, t1]); print(f'depth: {name}: let go at {until:.2f} s (the hand at its fastest)')
                 pg.evaluate('(u) => { window.holdUntil = u; }', until); pg.evaluate('(w) => { window.wantHeld = w; }', bool(colour))
             for dr in WANT[name]:
-                shots = pg.evaluate('(a) => window.frames(...a)', [a['clip'], dr, n, t0, t1x] + pose)
+                shots = (pg.evaluate('(a) => window.blendFrames(...a)', [ends[0][0], ends[0][1], ends[1][0], ends[1][1], dr, n] + pose) if ends
+                         else pg.evaluate('(a) => window.frames(...a)', [a['clip'], dr, n, t0, t1x] + pose))
                 for k, u in enumerate(pg.evaluate('window.depthShots')): save(u, out / f'{name}-{dr}-{k}.png')
                 if colour:
                     for k, u in enumerate(shots): save(u, ren / f'{name}-{dr}-{k}.png')

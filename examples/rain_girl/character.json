@@ -2773,106 +2773,106 @@
     "south": {
      "file": "slash-south-trail.png",
      "frame": [
-      89,
-      386
+      153,
+      397
      ],
      "offset": [
-      80,
-      30
+      30,
+      19
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     },
     "south-east": {
      "file": "slash-south-east-trail.png",
      "frame": [
-      254,
-      390
+      255,
+      405
      ],
      "offset": [
       132,
-      25
+      11
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     },
     "east": {
      "file": "slash-east-trail.png",
      "frame": [
       245,
-      313
+      373
      ],
      "offset": [
       142,
-      4
+      -19
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     },
     "north-east": {
      "file": "slash-north-east-trail.png",
      "frame": [
-      238,
-      310
+      236,
+      377
      ],
      "offset": [
-      149,
+      151,
       -57
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     },
     "north": {
      "file": "slash-north-trail.png",
      "frame": [
-      104,
-      278
+      186,
+      355
      ],
      "offset": [
-      126,
+      120,
       -57
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     },
     "north-west": {
      "file": "slash-north-west-trail.png",
      "frame": [
-      255,
-      288
+      258,
+      358
      ],
      "offset": [
       -86,
       -57
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     },
     "west": {
      "file": "slash-west-trail.png",
      "frame": [
       245,
-      283
+      359
      ],
      "offset": [
       -86,
-      -7
+      -32
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     },
     "south-west": {
      "file": "slash-south-west-trail.png",
      "frame": [
-      235,
-      366
+      238,
+      380
      ],
      "offset": [
       -86,
-      17
+      2
      ],
-     "frames": 16,
-     "per_frame": 2
+     "frames": 24,
+     "per_frame": 3
     }
    }
   }

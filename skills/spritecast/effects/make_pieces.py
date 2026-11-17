@@ -12,7 +12,17 @@ HERE = Path(__file__).resolve().parent
 
 def cell(): return Image.new('RGBA', (S * SS, S * SS), (0, 0, 0, 0))
 def P(pts): return [(x * S * SS, y * S * SS) for x, y in pts]
-def done(im): return im.resize((S, S), Image.LANCZOS)
+def done(im): return soft(im, 0).resize((S, S), Image.LANCZOS)
+
+
+def soft(im, r):
+    """blurred by r (0: only made ready to resize) WITHOUT dark edges: the colour is spread with its weight (premultiplied) and divided back.
+    Blurred as it was, the clear pixels round a piece (black, at no weight) were mixed into its colour: a white puff of mist came out
+    ringed in grey on a light floor."""
+    a = np.asarray(im.convert('RGBA')).astype(np.float32) / 255; pm = np.dstack([a[..., :3] * a[..., 3:], a[..., 3:]])
+    if r: pm = np.dstack([np.asarray(Image.fromarray((pm[..., k] * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(r))).astype(np.float32) / 255 for k in range(4)])
+    al = pm[..., 3:]; rgb = np.where(al > 1e-3, pm[..., :3] / np.maximum(al, 1e-3), 1.0)
+    return Image.fromarray((np.dstack([np.clip(rgb, 0, 1), al]) * 255).round().astype(np.uint8))
 def strip(name, cells):
     st = Image.new('RGBA', (S * len(cells), S), (0, 0, 0, 0))
     for i, c in enumerate(cells): st.paste(done(c), (i * S, 0))
@@ -45,7 +55,7 @@ def flame(lean, col_out, col_mid, col_in):          # a tongue: round below, a p
 def glow(col, core, r=0.2):
     im = cell(); d = ImageDraw.Draw(im)
     d.ellipse(P([(0.5 - r, 0.5 - r), (0.5 + r, 0.5 + r)]), fill=col); d.ellipse(P([(0.5 - r * 0.5, 0.5 - r * 0.5), (0.5 + r * 0.5, 0.5 + r * 0.5)]), fill=core)
-    return im.filter(ImageFilter.GaussianBlur(SS * 1.2))
+    return soft(im, SS * 1.2)
 
 
 def leaf(col, vein, bend, kind=0):
@@ -85,7 +95,7 @@ def petal(col, tip_, base):
 def flake(arms=True):
     im = cell(); d = ImageDraw.Draw(im); w = (255, 255, 255, 255)
     if not arms:
-        d.ellipse(P([(0.3, 0.3), (0.7, 0.7)]), fill=w); return im.filter(ImageFilter.GaussianBlur(SS * 1.5))
+        d.ellipse(P([(0.3, 0.3), (0.7, 0.7)]), fill=w); return soft(im, SS * 1.5)
     for k in range(6):
         a = math.pi / 3 * k; c, s_ = math.cos(a), math.sin(a)
         d.line(P([(0.5, 0.5), (0.5 + 0.38 * c, 0.5 + 0.38 * s_)]), fill=w, width=SS * 3)
@@ -110,7 +120,7 @@ def puff(seed):          # a soft white cloud of a few round lumps (mist, steam)
     for _ in range(6):
         x, y, r = 0.5 + rng.uniform(-0.16, 0.16), 0.5 + rng.uniform(-0.14, 0.14), rng.uniform(0.12, 0.2)
         d.ellipse(P([(x - r, y - r), (x + r, y + r)]), fill=(255, 255, 255, 255))
-    return im.filter(ImageFilter.GaussianBlur(SS * 4))
+    return soft(im, SS * 4)
 
 
 def ash(seed, ember):          # a small ragged flake, dark grey; `ember`: one edge still glowing

@@ -230,6 +230,55 @@ the limbs); `SPRITECAST_KEY=white` cuts by white on purpose.
   length). Everything above then works for it. Tell the user when a thing they ask for is not built in, and build it.
 - Show the user `hand-*.png` with the renders, before the first paid sheet.
 
+## The poses between two animations: `"between"`
+A walk does not end in an attack's first pose: played one after the other, the body jumps (the user: "the change from the walk to
+the attack stance is awkward - can we make the frames between? we have the 3D model"). An action with `"between"` is those frames:
+
+    {"name": "ready",   "between": ["walk", "slash"],     "frames": 3}      the walk's first pose → the slash's first pose
+    {"name": "recover", "between": ["slash:end", "walk"], "frames": 4}      the slash's LAST pose → the walk's first
+
+- **How.** The rig plays both clips at once, each stopped at one moment, and the weight goes from the one to the other (eased: it
+  leaves and arrives gently); the hips stay where each clip keeps them. `frames` poses strictly between the two ends: the ends
+  themselves are the animations' own frames. An end is `walk`, `idle` or an action's name (its first pose), or `<action>:end`
+  (its last: that action needs a `"t1"`).
+- **Free to render** (`render --only ready`), and LOOK at the renders: a blend of two far-apart poses can pass an arm through the
+  body. Then it is drawn like any action (`draw`, or `pixelart.py --clips ready`) - one sheet for three or four frames.
+- **What is held**: the far end's `hold` (or the near end's, if the far end holds nothing), so the thing is in the hand all the way.
+  For it to be there in the WALK too, the walk must carry it: `"hold"` in the spec itself, or an action on the walk's clip
+  (`{"name": "carry", "clip": "walk", "t0": 0, "t1": <the walk's t1>, "loop": true, "hold": {...}}`) - otherwise the thing
+  appears from nowhere in the first in-between.
+- **In the game**: walk ... its first pose → `ready` → the attack → `recover` → the walk's first pose and on.
+- Checked on the rain girl, south-east, drawn and as pixel art (walk with the umbrella, 3 down, the slash, 4 back up). Not checked:
+  `pack`'s frame rate for it (it takes the walk's).
+
+## Seeing animations joined: `loop`
+`charpipe.py loop SPEC --only walk,ready,slash,recover --facing south-east` (free) plays the finished frames of those animations one
+after another as one GIF - `out/loop-<facing>.gif`, each frame with its 3D shadow and, for an action with `"trail"`, its effect - to see
+the joins before anything is drawn again. A looping animation plays from its second frame round to its first (the pose a `between`
+leaves from and comes back to); a one-shot once; each at its own pace (in-betweens 0.12 s a frame). It needs the frames finished
+(`frames/`), not packed. The rain girl's walk → stance → slash → back up was looked at this way, and frame 5's floating fist found.
+
+## One frame wrong: `frame_words`, and `frame` to draw it alone
+When one frame of an action comes out wrong and the render is right, say what the render cannot show, for that frame only, and draw
+that frame alone:
+
+    "frame_words": {"5@south-east": "the LEFT hand grips the shaft beside the right fist, MOSTLY HIDDEN BEHIND HER HEAD: ..."}
+    charpipe.py frame SPEC --only slash --facing south-east --frame 5 --yes        (~$0.08; the frame from 1)
+
+`frame_words` keys are the frame (from 1), or `<frame>@<facing>`; the sentence goes into that cell of the sheet's prompt (and of a frame
+drawn alone). `frame` draws the one frame with its render in the second cell of an empty sheet, at the action's scale and beside its
+drawn sheet for the style; `finish` then uses it in place of the sheet's cell (draw/<action>-<facing>-single-<k>.png; the one before is
+kept as .before.png).
+
+**A hand the head hides - the image model pulls it into sight.** The rain girl's slash, south-east frame 5: both hands up on the
+umbrella, the left one (in the clip, a little off the shaft) behind her head. Drawn five times - the sheet again, alone, the fist
+described ("closed round the shaft, the thumb over it"), with 2.5 and with 2.6, and with the 3D hand moved onto the shaft - and every
+time the left fist sat ON TOP of the shaft, above the hair, as if put there to be seen. Told instead that the hand is mostly hidden
+behind her head ("only the knuckles show over the shaft; do not draw the whole fist, do not move it up to show it"), 2.5 drew it right
+the first time, from the clip's own render. The same habit as a snowball in a hand behind the head drawn at the chest
+(reference/pixel.md). Moving the 3D hand did not help: from that camera a hand on the shaft is behind the head, and the drawing still
+pulled it up.
+
 ## A swing's effect: `"trail"` - free, nothing drawn
 `"trail"` in an action whose hand holds something (`{"name": "slash", "hold": "umbrella", "trail": "water"}`) gives the swing an effect:
 a sprite of its own that the game lays OVER the body at the same moment. The body's frames are not touched and nothing is paid: an
@@ -248,8 +297,8 @@ action that is already drawn gets its effect with `render --only slash` and `pac
   forms as they part, and it breaks - water goes sheet → strings → drops, with mist rising after it; flame is white-yellow where
   much and new, through orange to a red rim that darkens and goes as it cools, with ash drifting up. `drops` and `flames` are the
   same two as loose pieces.
-- **More effect frames than body frames.** `water` and `fire` have `"frames_x": 2`: two effect cells to each body frame, played at
-  twice the fps over the same body frame. At one to one a sheet was whole in one frame and drops in the next - the tearing was
+- **More effect frames than body frames.** `water` has `"frames_x": 3`, `fire` and the piece looks 2: that many effect cells to each body frame, played at
+  that many times the fps over the same body frame. At one to one a sheet was whole in one frame and drops in the next - the tearing was
   never seen. `character.json`: `"trail": {<facing>: {"file", "frame", "offset", "frames", "per_frame"}}` in the action - the cell
   size, its top-left from the body frame's top-left, how many cells, and how many of them to each body frame. `export.py` carries it
   into every engine as a third sprite.
@@ -262,6 +311,11 @@ action that is already drawn gets its effect with `render --only slash` and `pac
 - **Not checked**: `"image"` with a user's own strip; a thing other than the umbrella.
 
 ## A held thing: say it part by part
+
+The umbrella's shaft and tip are silver; `"shaft": "#6b4423"` and `"tip": "#ffffff"` in its `hold` give them other colours (the render's
+only - the built-in sentence still says silver: give your own `"words"` with them). Tried on the pixel walk to see whether a dark shaft
+helps the image model find a yellow umbrella against a yellow coat: one sheet came out better, which a second drawing of the same might
+have done too - not shown to help.
 
 The built-in sentence for an umbrella names its three parts and their colours; for anything else held (`"hold": {"kind": ...}`), or when a
 drawing gets a part wrong, give the sentence yourself in the spec: `"hold": {"kind": "sword", "words": "In the RIGHT hand: ..."}`.
